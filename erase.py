@@ -138,9 +138,19 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             M = (sum_target_target @ P + args.retain_scale * I).inverse()
             delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (I - M @ K2 @ (K2.T @ P @ M @ K2 + args.lamb * I2).inverse() @ K2.T @ P) @ M
 
-        # Save edited weights
         # TODO
-        edit_dict[layer_name] = layer_weight + delta_weight
+        # Save edited weights (norm-aligned update)
+        if "attn2.to_k" in layer_name:
+            delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P0_min
+            updated_weight = layer_weight + delta_weight
+            orig_norm = layer_weight.norm(p=2, dim=1, keepdim=True)
+            updated_norm = updated_weight.norm(p=2, dim=1, keepdim=True).clamp_min(1e-12)
+            edit_dict[layer_name] = updated_weight / updated_norm * orig_norm
+        elif "attn2.to_v" in layer_name:
+            v_temp = layer_weight + delta_weight
+            delta_norm = delta_weight.norm(p=2, dim=1, keepdim=True)
+            gamma = torch.exp(-args.v_compress_alpha * delta_norm)
+            edit_dict[layer_name] = gamma * v_temp
 
     print(f"Current model status: Edited {str(target_concepts)} into {str(anchor_concepts)}")
     return edit_dict
@@ -167,7 +177,16 @@ if __name__ == '__main__':
     parser.add_argument('--retain_scale', type=float, default=1.0)
     parser.add_argument('--lamb', type=float, default=0.0)
     parser.add_argument('--disable_filter', action='store_true', default=False)
+    
+    # my
+    parser.add_argument('--v_compress_alpha', type=float, default=1.0)
+    
     args = parser.parse_args()
+    print("[Arguments]")
+    for key, value in vars(args).items():
+        print(f"{key}={value}")
+    
+
     device = torch.device("cuda")
     seed_everything(args.seed)
 
