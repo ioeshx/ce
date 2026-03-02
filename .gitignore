@@ -1,4 +1,7 @@
 .vscode/
 papers/
 tmp/
-data/
+logs/*
+!logs/readme
+__pycache__/
+ckpt/

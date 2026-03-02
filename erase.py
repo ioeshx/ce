@@ -180,6 +180,7 @@ if __name__ == '__main__':
     
     # my
     parser.add_argument('--v_compress_alpha', type=float, default=1.0)
+    parser.add_argument('--ckpt_path_file', type=str, default=None)
     
     args = parser.parse_args()
     print("[Arguments]")
@@ -230,4 +231,11 @@ if __name__ == '__main__':
     save_path = args.save_path or "logs/checkpoints"
     file_name = args.file_name or f"{time.strftime('%Y%m%d-%H%M%S')}-{file_suffix}"
     os.makedirs(save_path, exist_ok=True)
-    torch.save(edit_dict, os.path.join(save_path, f"{file_name}.pt"))
+    ckpt_path = os.path.join(save_path, f"{file_name}.pt")
+    torch.save(edit_dict, ckpt_path)
+    if args.ckpt_path_file:
+        with open(args.ckpt_path_file, 'w') as f:
+            f.write(ckpt_path)
+    print(f"[CKPT_PATH]{ckpt_path}")
+    
+
