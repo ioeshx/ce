@@ -136,21 +136,14 @@ def _get_layer_group(layer_name: str) -> str:
     return "unknown"
 
 
-def erase(pipeline: diffusers.StableDiffusionPipeline, args: argparse.Namespace):
+def erase(
+    pipeline: diffusers.StableDiffusionPipeline,
+    args: argparse.Namespace,
+    target_concepts: List[str],
+    guided_concepts: List[str],
+    retain_prompts: List[str]):
+    
     device = pipeline.device
-    target_concepts = _parse_list_arg(args.target_concepts)
-    guided_concepts = _parse_list_arg(args.guided_concepts)
-    if len(guided_concepts) == 1 and len(target_concepts) > 1:
-        guided_concepts = guided_concepts * len(target_concepts)
-    if len(target_concepts) != len(guided_concepts):
-        raise ValueError("target_concepts and guided_concepts must align in length.")
-
-    retain_prompts = []
-    # 读取retain prompts的逻辑：如果指定了retain_path和header，就从csv中读取对应列的提示词；如果指定了preserve_concepts，就把这些概念也加入retain prompts；如果两者都没有指定，则retain prompts为空
-    if args.retain_path and args.header:
-        retain_prompts = _load_retain_prompts(args.retain_path, args.header, args.retain_max)
-    if args.preserve_concepts:
-        retain_prompts.extend(_parse_list_arg(args.preserve_concepts))
 
     target_embs = _get_text_embs(target_concepts, pipeline, device)
     anchor_embs = _get_text_embs(guided_concepts, pipeline, device)
@@ -160,36 +153,10 @@ def erase(pipeline: diffusers.StableDiffusionPipeline, args: argparse.Namespace)
     C = torch.stack(C_list, dim=0)
     I = torch.eye(target_embs.size(1), device=device)
 
-    clip_map = None
-    clip_target = None
-    if args.use_clip:
-        clip_map, clip_target = _fit_clip_to_sd_map(
-            pipeline=pipeline,
-            prompts=target_concepts,
-            device=device,
-            num_images=args.clip_samples,
-            seed=args.seed,
-            clip_model_id=args.clip_model_id,
-        )
-
     edit_dict: Dict[str, torch.Tensor] = {}
     for name, param in pipeline.unet.state_dict().items():
         if "attn2.to_k" not in name and "attn2.to_v" not in name:
             continue
-
-        layer_group = _get_layer_group(name)
-        if layer_group == "low":
-            threshold = args.low_threshold
-            alpha_k = args.low_alpha_k
-            beta_k = args.low_beta_k
-            alpha_v = args.low_alpha_v
-            beta_v = args.low_beta_v
-        else:
-            threshold = args.high_threshold
-            alpha_k = args.high_alpha_k
-            beta_k = args.high_beta_k
-            alpha_v = args.high_alpha_v
-            beta_v = args.high_beta_v
 
         # 根据SPEED计算的erase weight
         # 分解为null space和orthogonal space两部分，分别乘以不同的系数进行调整
@@ -229,7 +196,7 @@ def erase(pipeline: diffusers.StableDiffusionPipeline, args: argparse.Namespace)
                 beta_k * (delta_orth @ P_ske) +
                 args.preserve_scale * (delta_null @ P_skr)
             )
-        else:
+        elif "attn2.to_v" in name:
             if clip_map is None or clip_target is None:
                 raise RuntimeError("CLIP mapping is required for V-subspace. Use --use_clip.")
 
@@ -322,4 +289,18 @@ if __name__ == "__main__":
     if args.preserve_scale is None:
         args.preserve_scale = 0.0
 
-    erase(pipeline, args)
+    target_concepts = _parse_list_arg(args.target_concepts)
+    guided_concepts = _parse_list_arg(args.guided_concepts)
+    if len(guided_concepts) == 1 and len(target_concepts) > 1:
+        guided_concepts = guided_concepts * len(target_concepts)
+    if len(target_concepts) != len(guided_concepts):
+        raise ValueError("target_concepts and guided_concepts must align in length.")
+
+    retain_prompts = []
+    # 读取retain prompts的逻辑：如果指定了retain_path和header，就从csv中读取对应列的提示词；如果指定了preserve_concepts，就把这些概念也加入retain prompts；如果两者都没有指定，则retain prompts为空
+    if args.retain_path and args.header:
+        retain_prompts = _load_retain_prompts(args.retain_path, args.header, args.retain_max)
+    if args.preserve_concepts:
+        retain_prompts.extend(_parse_list_arg(args.preserve_concepts))
+
+    erase(pipeline, args, target_concepts, guided_concepts, retain_prompts)
