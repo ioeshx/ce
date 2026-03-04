@@ -5,3 +5,6 @@ logs/*
 !logs/readme
 __pycache__/
 ckpt/
+result/
+results/
+!scripts/cmd.sh
