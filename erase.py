@@ -8,30 +8,12 @@ import pandas as pd
 from tqdm import tqdm
 from kmeans_pytorch import kmeans
 from diffusers import StableDiffusionPipeline
-
 import random
 
+from util.utils import str2bool
 
-def str2bool(value):
-    if isinstance(value, bool):
-        return value
-    value = str(value).strip().lower()
-    if value in {'1', 'true', 't', 'yes', 'y'}:
-        return True
-    if value in {'0', 'false', 'f', 'no', 'n'}:
-        return False
-    raise argparse.ArgumentTypeError(f'Invalid boolean value: {value}')
 
 def seed_everything(seed, deterministic=False):
-    """Set random seed.
-
-    Args:
-        seed (int): Seed to be used.
-        deterministic (bool): Whether to set the deterministic option for
-            CUDNN backend, i.e., set `torch.backends.cudnn.deterministic`
-            to True and `torch.backends.cudnn.benchmark` to False.
-            Default: False.
-    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -40,11 +22,12 @@ def seed_everything(seed, deterministic=False):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
+
 def get_token_id(prompt, tokenizer=None, return_ids_only=True):
     token_ids = tokenizer(prompt, padding="max_length", max_length=tokenizer.model_max_length, truncation=True, return_tensors="pt")
     return token_ids.input_ids if return_ids_only else token_ids
 
-
+# Speed专属
 def generate_perturbed_embs(ret_embs, P, erase_weight, num_per_sample, mini_batch=8):
     ret_embs = ret_embs.squeeze(1)
     out_embs, norm_list = [], []
@@ -58,138 +41,6 @@ def generate_perturbed_embs(ret_embs, P, erase_weight, num_per_sample, mini_batc
     out_embs = torch.cat(out_embs, dim=0)
     norm_list = torch.cat(norm_list, dim=0)
     return out_embs[norm_list > norm_list.mean()].unsqueeze(1) # shape: [Num, 1, 768]
-
-
-class Attn2OutputCapture:
-    def __init__(self, unet):
-        self.unet = unet
-        self.layer_names = []
-        self._handles = []
-        self.current_outputs = {}
-
-        for module_name, _ in self.unet.named_modules():
-            if module_name.endswith('attn2'):
-                self.layer_names.append(module_name)
-        self.layer_names = sorted(self.layer_names)
-
-    def _make_hook(self, name):
-        def hook_fn(module, inputs, output):
-            tensor = output[0] if isinstance(output, tuple) else output
-            if torch.is_tensor(tensor):
-                self.current_outputs[name] = tensor.detach()
-        return hook_fn
-
-    def register(self):
-        named_modules = dict(self.unet.named_modules())
-        for name in self.layer_names:
-            handle = named_modules[name].register_forward_hook(self._make_hook(name))
-            self._handles.append(handle)
-
-    def clear(self):
-        self.current_outputs = {}
-
-    def remove(self):
-        for handle in self._handles:
-            handle.remove()
-        self._handles = []
-
-    def get_outputs(self, batch_size):
-        ret = {}
-        for layer_name, tensor in self.current_outputs.items():
-            if tensor.dim() != 3:
-                continue
-            cond_tensor = tensor[:batch_size].mean(dim=0)
-            ret[layer_name] = cond_tensor.float()
-        return ret
-
-
-def gather_attn_diffs_and_text_cols(args, pipeline, target_concepts, anchor_concepts, device):
-    capture = Attn2OutputCapture(pipeline.unet)
-    capture.register()
-
-    scheduler = pipeline.scheduler
-    scheduler.set_timesteps(args.mask_num_steps)
-    step_index = min(max(args.mask_step_index, 0), len(scheduler.timesteps) - 1)
-    timestep = scheduler.timesteps[step_index].to(device)
-
-    latent = torch.randn(
-        1,
-        pipeline.unet.config.in_channels,
-        pipeline.unet.config.sample_size,
-        pipeline.unet.config.sample_size,
-        device=device,
-        dtype=pipeline.unet.dtype,
-    )
-    latent = scheduler.scale_model_input(latent, timestep)
-
-    layer_diff_sums = {}
-    col_diff_sums = None
-
-    for target_prompt, anchor_prompt in zip(target_concepts, anchor_concepts):
-        target_inputs = get_token_id(target_prompt, pipeline.tokenizer, return_ids_only=False)
-        target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state
-        anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
-        anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state
-
-        capture.clear()
-        _ = pipeline.unet(latent, timestep, encoder_hidden_states=target_embs)
-        target_outputs = capture.get_outputs(batch_size=1)
-
-        capture.clear()
-        _ = pipeline.unet(latent, timestep, encoder_hidden_states=anchor_embs)
-        anchor_outputs = capture.get_outputs(batch_size=1)
-
-        for layer_name in capture.layer_names:
-            if layer_name not in target_outputs or layer_name not in anchor_outputs:
-                continue
-            diff_tensor = target_outputs[layer_name] - anchor_outputs[layer_name]
-            diff_tensor = diff_tensor.abs() if args.mask_use_abs_diff else diff_tensor
-            if layer_name not in layer_diff_sums:
-                layer_diff_sums[layer_name] = diff_tensor
-            else:
-                layer_diff_sums[layer_name] += diff_tensor
-
-        target_idx = int(target_inputs.attention_mask[0].sum().item() - 2)
-        anchor_idx = int(anchor_inputs.attention_mask[0].sum().item() - 2)
-        target_idx = max(target_idx, 0)
-        anchor_idx = max(anchor_idx, 0)
-        token_diff = target_embs[0, target_idx] - anchor_embs[0, anchor_idx]
-        token_diff = token_diff.abs() if args.mask_use_abs_diff else token_diff.abs()
-        if col_diff_sums is None:
-            col_diff_sums = token_diff
-        else:
-            col_diff_sums = col_diff_sums + token_diff
-
-    pair_count = max(1, len(target_concepts))
-    layer_diffs = {k: (v / pair_count) for k, v in layer_diff_sums.items()}
-    col_diff = (col_diff_sums / pair_count) if col_diff_sums is not None else torch.ones(768, device=device)
-
-    capture.remove()
-    return layer_diffs, col_diff
-
-
-def build_2d_mask_for_layer(diff_map, col_diff, out_channels, in_channels, topk_regions, topr_channels, topd_cols, device):
-    if diff_map is None:
-        return torch.ones(out_channels, in_channels, device=device)
-
-    region_scores = diff_map.norm(p=1, dim=1)
-    k_region = max(1, min(topk_regions, region_scores.shape[0]))
-    topk_idx = torch.topk(region_scores, k=k_region).indices
-    selected_regions = diff_map[topk_idx]
-
-    channel_scores = selected_regions.mean(dim=0)
-    r_channels = max(1, min(topr_channels, out_channels, channel_scores.shape[0]))
-    row_idx = torch.topk(channel_scores, k=r_channels).indices
-    row_mask = torch.zeros(out_channels, device=device)
-    row_mask[row_idx] = 1.0
-
-    d_cols = max(1, min(topd_cols, in_channels, col_diff.shape[0]))
-    col_idx = torch.topk(col_diff, k=d_cols).indices
-    col_mask = torch.zeros(in_channels, device=device)
-    col_mask[col_idx] = 1.0
-
-    mask_2d = row_mask.unsqueeze(1) * col_mask.unsqueeze(0)
-    return mask_2d
 
 
 @torch.no_grad()
@@ -206,21 +57,22 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
 
     if baseline in ['SPEED']:
         null_inputs = get_token_id('', pipeline.tokenizer, return_ids_only=False)
-        null_hidden = pipeline.text_encoder(null_inputs.input_ids.to(device)).last_hidden_state[0]
+        null_hidden = pipeline.text_encoder(null_inputs.input_ids.to(device)).last_hidden_state[0] # [0] index -> [77, 768]
         cluster_ids, cluster_centers = kmeans(X=null_hidden[1:], num_clusters=3, distance='euclidean', device='cuda')
-        K2 = torch.cat([null_hidden[[0], :], cluster_centers.to(device)], dim=0).T
-        I2 = torch.eye(len(K2.T), device=device)
+        K2 = torch.cat([null_hidden[[0], :], cluster_centers.to(device)], dim=0).T # shape: [768, 4]
+        I2 = torch.eye(len(K2.T), device=device) # shape: [4, 4]
     else:
         raise ValueError("Invalid baseline")
 
-    # 擦除多个概念时，取它们的平均作为最终的擦除目标；如果是单个概念，则直接使用该概念的文本嵌入作为擦除目标
     # region [Target and Anchor]
+    # nudity 使用所有token，其他概念使用last subject token
+    # 擦除多个概念时，取它们的平均作为最终的擦除目标；如果是单个概念，则直接使用该概念的文本嵌入作为擦除目标
     sum_anchor_target, sum_target_target = [], []
     for i in range(0, len(target_concepts)):
         target_inputs = get_token_id(target_concepts[i], pipeline.tokenizer, return_ids_only=False)
-        target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0]
+        target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
         anchor_inputs = get_token_id(anchor_concepts[i], pipeline.tokenizer, return_ids_only=False)
-        anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0]
+        anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
         if target_concepts == ['nudity']:
             target_embs = target_embs[1:, :]  # all tokens
             anchor_embs = anchor_embs[1:, :]  # all tokens
@@ -230,112 +82,67 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
     sum_target_target, sum_anchor_target = torch.stack(sum_target_target).mean(0), torch.stack(sum_anchor_target).mean(0)
+    # shape of both: [768, 768]
     # endregion
 
-    layer_diff_maps, col_diff = None, None
-    if args.mask_enable and args.params in ['V', 'KV']:
-        layer_diff_maps, col_diff = gather_attn_diffs_and_text_cols(
-            args=args,
-            pipeline=pipeline,
-            target_concepts=target_concepts,
-            anchor_concepts=anchor_concepts,
-            device=device,
-        )
 
     # region [Retain]
+    # retain为空，则使用一个全零输入的文本嵌入作为retain；否则使用retain文本中最后一个subject token的文本嵌入作为retain
     last_ret_embs = []
     retain_texts = [text for text in retain_texts if not any(re.search(r'\b' + re.escape(concept.lower()) + r'\b', text.lower()) for concept in target_concepts)]
     assert len(retain_texts) + len(target_concepts) == len(set(retain_texts + target_concepts))
     for j in range(0, len(retain_texts), chunk_size):
         ret_inputs = get_token_id(retain_texts[j:j + chunk_size], pipeline.tokenizer, return_ids_only=False)
-        ret_embs = pipeline.text_encoder(ret_inputs.input_ids.to(device)).last_hidden_state
-        if retain_texts == ['']: 
-            last_ret_embs.append(ret_embs[:, 1:, :].permute(1, 0, 2))
+        ret_embs = pipeline.text_encoder(ret_inputs.input_ids.to(device)).last_hidden_state # [chunk_size, 77, 768]
+        if retain_texts == ['']:
+            last_ret_embs.append(ret_embs[:, 1:, :].permute(1, 0, 2))   # shape: [76, 1, 768]
         else:
             last_subject_indices = ret_inputs.attention_mask.sum(1) - 2
-            last_ret_embs.append(ret_embs[torch.arange(ret_embs.size(0)), last_subject_indices].unsqueeze(1))
+            last_ret_embs.append(ret_embs[torch.arange(ret_embs.size(0)), last_subject_indices].unsqueeze(1)) # shape: [chunk_size, 1, 768]
     last_ret_embs = torch.cat(last_ret_embs)
-    last_ret_embs = last_ret_embs[torch.randperm(last_ret_embs.size(0))]  # shuffle
+    last_ret_embs = last_ret_embs[torch.randperm(last_ret_embs.size(0))]  # shuffle, shape [total_retain_num, 1, 768]
     # endregion
     
     ret_ret_embs = last_ret_embs.squeeze(1).T @ last_ret_embs.squeeze(1)
+
+    if args.aug_num > 0 and not args.disable_filter:
+        print("Enable IPF and DPA")
+    else:
+        print("No IPF or DPA")
     
-    print("Apply mask for pertubation...")
     for (layer_name, layer_weight) in tqdm(edit_dict.items(), desc="Model Editing"):
 
-        erase_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ (I + sum_target_target+ret_ret_embs).inverse()
-        if args.mask_enable and 'attn2.to_v' in layer_name and layer_diff_maps is not None and col_diff is not None:
-            
-            attn_layer_name = layer_name.replace('.to_v.weight', '')
-            diff_map = layer_diff_maps.get(attn_layer_name)
-            mask_2d = build_2d_mask_for_layer(
-                diff_map=diff_map,
-                col_diff=col_diff,
-                out_channels=layer_weight.shape[0],
-                in_channels=layer_weight.shape[1],
-                topk_regions=args.mask_topk,
-                topr_channels=args.mask_channel_topr,
-                topd_cols=args.mask_col_topd,
-                device=device,
-            ).to(dtype=erase_weight.dtype)
-            delta_weight = erase_weight * mask_2d
-        else:
-            delta_weight = erase_weight
+        erase_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ (I + sum_target_target).inverse()        
 
-        edit_dict[layer_name] = layer_weight + delta_weight
-        
-        
-        # print("sum_anchor_target.size():", sum_anchor_target.size(), 
-        #       "\nsum_target_target.size():", sum_target_target.size(), 
-        #       "\nlast_ret_embs.size():", last_ret_embs.size(),
-        #       "\nret_ret_embs.size():", ret_ret_embs.size(),
-        #       "\nerase_weight.size():", erase_weight.size(), 
-        #       "\nlayer_weight.size():", layer_weight.size())
-        # exit(0)
-
-        # (U0, S0, V0) = torch.svd(layer_weight)
-        # P0_min = V0[:, -1:] @ V0[:, -1:].T
-
+        (U0, S0, V0) = torch.svd(layer_weight)
+        P0_min = V0[:, -1:] @ V0[:, -1:].T
         # INFLUENCE-BASED PRIOR FILTERING
         # if args.aug_num > 0 and not args.disable_filter:
         #     # prior shift filtering
         #     weight_norm_init = torch.matmul(last_ret_embs.squeeze(1), erase_weight.T).norm(dim=1)
         #     layer_ret_embs = last_ret_embs[weight_norm_init > weight_norm_init.mean()]
         # else:
-        #     layer_ret_embs = last_ret_embs
+        #      layer_ret_embs = last_ret_embs
+        layer_ret_embs = last_ret_embs
 
-        # DIRECTED PRIOR AUGMENTATION
-        # sum_ret_ret, valid_num = [], 0
-        # for j in range(0, len(layer_ret_embs), chunk_size):
-        #     chunk_ret_embs = layer_ret_embs[j:j + chunk_size]
-        #     if args.aug_num > 0:
-        #         chunk_ret_embs = torch.cat(
-        #             [chunk_ret_embs, generate_perturbed_embs(chunk_ret_embs, P0_min, erase_weight, num_per_sample=args.aug_num)], dim=0
-        #         )
-        #     valid_num += chunk_ret_embs.shape[0]
-        #     sum_ret_ret.append((chunk_ret_embs.transpose(1, 2) @ chunk_ret_embs).sum(0))
-        # sum_ret_ret = torch.stack(sum_ret_ret, dim=0).sum(0) / valid_num
+        sum_ret_ret, valid_num = [], 0
+        for j in range(0, len(layer_ret_embs), chunk_size):
+            chunk_ret_embs = layer_ret_embs[j:j + chunk_size]
+            # if args.aug_num > 0:
+            #     chunk_ret_embs = torch.cat(
+            #         [chunk_ret_embs, generate_perturbed_embs(chunk_ret_embs, P0_min, erase_weight, num_per_sample=args.aug_num)], dim=0
+            #     )
+            valid_num += chunk_ret_embs.shape[0]
+            sum_ret_ret.append((chunk_ret_embs.transpose(1, 2) @ chunk_ret_embs).sum(0))
+        sum_ret_ret = torch.stack(sum_ret_ret, dim=0).sum(0) / valid_num
 
-        # INVARIANT EQUALITY CONSTRAINTS (IEC)
-        # if baseline == 'SPEED':
-        #     U, S, V = torch.svd(sum_ret_ret)
-        #     P = U[:, S < args.threshold] @ U[:, S < args.threshold].T
-        #     M = (sum_target_target @ P + args.retain_scale * I).inverse()
-        #     delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (I - M @ K2 @ (K2.T @ P @ M @ K2 + args.lamb * I2).inverse() @ K2.T @ P) @ M
 
-        # TODO
-        # Save edited weights (norm-aligned update)
-        # if "attn2.to_k" in layer_name:
-        #     delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P0_min
-        #     updated_weight = layer_weight + delta_weight
-        #     orig_norm = layer_weight.norm(p=2, dim=1, keepdim=True)
-        #     updated_norm = updated_weight.norm(p=2, dim=1, keepdim=True).clamp_min(1e-12)
-        #     edit_dict[layer_name] = updated_weight / updated_norm * orig_norm
-        # elif "attn2.to_v" in layer_name:
-        #     v_temp = layer_weight + delta_weight
-        #     delta_norm = delta_weight.norm(p=2, dim=1, keepdim=True)
-        #     gamma = torch.exp(-args.v_compress_alpha * delta_norm)
-        #     edit_dict[layer_name] = gamma * v_temp
+        U, S, V = torch.svd(sum_ret_ret)
+        P = U[:, S < args.threshold] @ U[:, S < args.threshold].T
+        
+        # $$\Delta P = W(C_*C_1^\top - C_1C_1^\top) P (C_1C_1^\top P + I)^{-1}$$
+        delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (sum_target_target @ P + I).inverse()
+        edit_dict[layer_name] = layer_weight + delta_weight
 
     print(f"Current model status: Edited {str(target_concepts)} into {str(anchor_concepts)}")
     return edit_dict
@@ -349,32 +156,21 @@ if __name__ == '__main__':
     parser.add_argument('--save_path', type=str, default=None)
     parser.add_argument('--file_name', type=str, default=None)
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--ckpt_path_file', type=str, default=None)
     # Erase Config
     parser.add_argument('--target_concepts', type=str, required=True)
     parser.add_argument('--anchor_concepts', type=str, required=True)
     parser.add_argument('--retain_path', type=str, default=None)
-    parser.add_argument('--heads', type=str, default=None)
+    parser.add_argument('--header', type=str, default=None)
     parser.add_argument('--baseline', type=str, default='SPEED')
     # Hyperparameters
     parser.add_argument('--params', type=str, default='V')
     parser.add_argument('--aug_num', type=int, default=10)
     parser.add_argument('--threshold', type=float, default=1e-1)
-    parser.add_argument('--retain_scale', type=float, default=1.0)
-    parser.add_argument('--lamb', type=float, default=0.0)
+    parser.add_argument('--retain_scale', type=float, default=1.0) # not used
+    parser.add_argument('--lamb', type=float, default=0.0)  # not used
     parser.add_argument('--disable_filter', action='store_true', default=False)
-
     # mask
-    parser.add_argument('--mask_enable', type=str2bool, default=False)
-    parser.add_argument('--mask_use_abs_diff', type=str2bool, default=True)
-    parser.add_argument('--mask_num_steps', type=int, default=20)
-    parser.add_argument('--mask_step_index', type=int, default=10)
-    parser.add_argument('--mask_topk', type=int, default=64)
-    parser.add_argument('--mask_channel_topr', type=int, default=256)
-    parser.add_argument('--mask_col_topd', type=int, default=256)
-    
-    # my
-    parser.add_argument('--v_compress_alpha', type=float, default=1.0)
-    parser.add_argument('--ckpt_path_file', type=str, default=None)
     
     args = parser.parse_args()
     print("[Arguments]")
@@ -405,7 +201,7 @@ if __name__ == '__main__':
     if retain_path is not None:
         assert retain_path.endswith('.csv')
         df = pd.read_csv(retain_path)
-        for head in args.heads.split(','):
+        for head in args.header.split(','):
             retain_texts += df[head.strip()].unique().tolist()
     else:
         retain_texts.append("")
