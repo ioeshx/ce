@@ -3,6 +3,17 @@ import random
 import torch
 import numpy as np
 from PIL import Image
+import argparse
+
+def str2bool(value):
+    if isinstance(value, bool):
+        return value
+    value = str(value).strip().lower()
+    if value in {'1', 'true', 't', 'yes', 'y'}:
+        return True
+    if value in {'0', 'false', 'f', 'no', 'n'}:
+        return False
+    raise argparse.ArgumentTypeError(f'Invalid boolean value: {value}')
 
 
 def seed_everything(seed, deterministic=False):

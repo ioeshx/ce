@@ -1,7 +1,3 @@
-save_path='ckpt/only_null_proj'
-naive-k=0.5
-ckpt_meta=$(mktemp)
-
 python erase.py \
     --target_concepts "Snoopy, Mickey, Spongebob" \
     --anchor_concepts "" \
@@ -10,17 +6,13 @@ python erase.py \
     --params V \
     --aug_num 0 \
     --disable_filter \
-    --save_path ${save_path} \
-    --ckpt_path_file "${ckpt_meta}"
 
-edit_ckpt=$(cat "${ckpt_meta}")
-rm -f "${ckpt_meta}"
 
 CUDA_VISIBLE_DEVICES=0 python sample.py \
     --erase_type 'instance' \
     --target_concept 'Snoopy, Mickey, Spongebob' \
     --contents 'Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty' \
-    --edit_ckpt "${edit_ckpt}" \
+    --edit_ckpt "logs/checkpoints/20260304-122127-Snoopy_Mickey_Spongebob_3-to_null.pt" \
     --mode 'original, edit' \
     --num_samples 10 --batch_size 10 \
-    --save_root 'result/mask-naive-k{naive-k}'
+    --save_root 'results/mask-naive-k0.8'

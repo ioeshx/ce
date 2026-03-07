@@ -11,9 +11,10 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
 
-from src.template import template_dict
-from src.utils import *
+from util.template import template_dict
+from util.utils import *
 
+# 使用自定义的csv文件生成
 
 def diffusion(unet, scheduler, latents, text_embeddings, total_timesteps, start_timesteps=0, guidance_scale=7.5, desc=None, **kwargs,):
 

@@ -67,6 +67,8 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     # region [Target and Anchor]
     # nudity 使用所有token，其他概念使用last subject token
     # 擦除多个概念时，取它们的平均作为最终的擦除目标；如果是单个概念，则直接使用该概念的文本嵌入作为擦除目标
+    if args.enable_target_proj2_anchor:
+        print("Enable Common = target projection to anchor.")
     sum_anchor_target, sum_target_target = [], []
     for i in range(0, len(target_concepts)):
         target_inputs = get_token_id(target_concepts[i], pipeline.tokenizer, return_ids_only=False)
@@ -79,6 +81,12 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         else:
             target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
             anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
+        # $$P = C_{anchor}(C_{anchor}^\top C_{anchor})^{-1}C_{anchor}^\top$$
+        
+        if args.enable_target_proj2_anchor:
+            project2anchor = anchor_embs @ torch.inverse(anchor_embs.T @ anchor_embs) @ anchor_embs.T
+            common_embs = target_embs @ project2anchor
+            anchor_embs = common_embs
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
     sum_target_target, sum_anchor_target = torch.stack(sum_target_target).mean(0), torch.stack(sum_anchor_target).mean(0)
@@ -124,7 +132,8 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         # else:
         #      layer_ret_embs = last_ret_embs
         layer_ret_embs = last_ret_embs
-
+        
+        # retain矩阵也是取平均的方式进行编辑
         sum_ret_ret, valid_num = [], 0
         for j in range(0, len(layer_ret_embs), chunk_size):
             chunk_ret_embs = layer_ret_embs[j:j + chunk_size]
@@ -170,7 +179,8 @@ if __name__ == '__main__':
     parser.add_argument('--retain_scale', type=float, default=1.0) # not used
     parser.add_argument('--lamb', type=float, default=0.0)  # not used
     parser.add_argument('--disable_filter', action='store_true', default=False)
-    # mask
+    # null project2retain + my ideas
+    parser.add_argument('--enable_target_proj2_anchor', action='store_true', default=False)
     
     args = parser.parse_args()
     print("[Arguments]")

@@ -14,6 +14,8 @@ from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
 from util.template import template_dict
 from util.utils import *
 
+## 使用template_dict中的prompt模板
+
 
 def diffusion(unet, scheduler, latents, text_embeddings, total_timesteps, start_timesteps=0, guidance_scale=7.5, desc=None, **kwargs,):
 
@@ -30,7 +32,7 @@ def diffusion(unet, scheduler, latents, text_embeddings, total_timesteps, start_
             encoder_hidden_states=text_embeddings,
         ).sample
 
-        # perform guidance
+        # perform Classifer-free guidance
         noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
 
         noise_pred = noise_pred_uncond + guidance_scale * (
@@ -63,7 +65,11 @@ def main():
     parser.add_argument('--contents', type=str, default='')
     parser.add_argument('--edit_ckpt', type=str, default=None)
     args = parser.parse_args()
-    assert args.num_samples >= args.batch_size
+    assert args.num_samples >= args.batch_size and args.num_samples % args.batch_size == 0, "num_samples should be a multiple of batch_size."
+    print("[Arguments]")
+    for key, value in vars(args).items():
+        print(f"{key}={value}")
+
 
     bs = args.batch_size
     mode_list = args.mode.replace(' ', '').split(',')
@@ -74,7 +80,7 @@ def main():
         for concept in concept_list_tmp:
             check_path = os.path.join(args.save_root, args.target_concept.replace(', ', '_'), concept, 'edit')
             os.makedirs(check_path, exist_ok=True)
-            if len(os.listdir(check_path)) != len(template_dict[args.erase_type]) * 10:
+            if len(os.listdir(check_path)) != len(template_dict[args.erase_type]) * args.num_samples:
                 concept_list.append(concept)
     else:
         concept_list = concept_list_tmp

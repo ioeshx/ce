@@ -1,6 +1,8 @@
 save_path='ckpt/only_null_proj'
-naive-k=0.5
+sample_save_root='result/only_null_proj'
 ckpt_meta=$(mktemp)
+
+export CUDA_VISIBLE_DEVICES=0
 
 python erase.py \
     --target_concepts "Snoopy, Mickey, Spongebob" \
@@ -16,11 +18,11 @@ python erase.py \
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"
 
-CUDA_VISIBLE_DEVICES=0 python sample.py \
+python sample.py \
     --erase_type 'instance' \
     --target_concept 'Snoopy, Mickey, Spongebob' \
     --contents 'Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty' \
     --edit_ckpt "${edit_ckpt}" \
     --mode 'original, edit' \
     --num_samples 10 --batch_size 10 \
-    --save_root 'result/mask-naive-k{naive-k}'
+    --save_root ${sample_save_root}
