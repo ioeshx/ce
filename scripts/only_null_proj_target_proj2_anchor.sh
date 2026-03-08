@@ -1,38 +1,41 @@
 #!/usr/bin/env sh
 
-save_path='ckpt/only_null_proj'
-sample_save_root='result/only_null_proj'
+save_path='ckpt/only_null_proj_target_proj2_anchor'
+sample_save_root='result/only_null_proj_target_proj2_anchor'
 target_concepts="Snoopy, Mickey, Spongebob"
 contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
 benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
+
+# Keep these as needed for your local benchmark assets.
 prompts_csv='/path/to/prompts.csv'
 
+ckpt_meta=$(mktemp)
 export CUDA_VISIBLE_DEVICES=1
 
-# ckpt_meta=$(mktemp)
+python erase.py \
+    --target_concepts "Snoopy, Mickey, Spongebob" \
+    --anchor_concepts "" \
+    --retain_path "data/instance.csv" \
+    --header "concept" \
+    --params V \
+    --aug_num 0 \
+    --disable_filter \
+    --save_path ${save_path} \
+    --ckpt_path_file "${ckpt_meta}" \
+    --enable_target_proj2_anchor
 
-# python erase.py \
-#     --target_concepts "Snoopy, Mickey, Spongebob" \
-#     --anchor_concepts "" \
-#     --retain_path "data/instance.csv" \
-#     --header "concept" \
-#     --params V \
-#     --aug_num 0 \
-#     --disable_filter \
-#     --save_path ${save_path} \
-#     --ckpt_path_file "${ckpt_meta}"
+edit_ckpt=$(cat "${ckpt_meta}")
+rm -f "${ckpt_meta}"
 
-# edit_ckpt=$(cat "${ckpt_meta}")
-# rm -f "${ckpt_meta}"
 
-# python sample.py \
-#     --erase_type 'instance' \
-#     --target_concept 'Snoopy, Mickey, Spongebob' \
-#     --contents 'Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty' \
-#     --edit_ckpt "${edit_ckpt}" \
-#     --mode 'original, edit' \
-#     --num_samples 10 --batch_size 10 \
-#     --save_root ${sample_save_root}
+python sample.py \
+    --erase_type 'instance' \
+    --target_concept 'Snoopy, Mickey, Spongebob' \
+    --contents 'Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty' \
+    --edit_ckpt "${edit_ckpt}" \
+    --mode 'original, edit' \
+    --num_samples 10 --batch_size 10 \
+    --save_root ${sample_save_root}
 
 
 trim_spaces() {

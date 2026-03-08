@@ -79,13 +79,13 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             target_embs = target_embs[1:, :]  # all tokens
             anchor_embs = anchor_embs[1:, :]  # all tokens
         else:
-            target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
+            target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
             anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
         # $$P = C_{anchor}(C_{anchor}^\top C_{anchor})^{-1}C_{anchor}^\top$$
         
         if args.enable_target_proj2_anchor:
-            project2anchor = anchor_embs @ torch.inverse(anchor_embs.T @ anchor_embs) @ anchor_embs.T
-            common_embs = target_embs @ project2anchor
+            project2anchor = target_embs @ anchor_embs.T @ (anchor_embs @ anchor_embs.T).inverse()  # shape: [1, 77] or [1, 1]
+            common_embs = target_embs * project2anchor
             anchor_embs = common_embs
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('--lamb', type=float, default=0.0)  # not used
     parser.add_argument('--disable_filter', action='store_true', default=False)
     # null project2retain + my ideas
-    parser.add_argument('--enable_target_proj2_anchor', action='store_true', default=False)
+    parser.add_argument('--enable_target_proj2_anchor', action='store_true', default=True)
     
     args = parser.parse_args()
     print("[Arguments]")
