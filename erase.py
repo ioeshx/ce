@@ -83,6 +83,9 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
         # $$P = C_{anchor}(C_{anchor}^\top C_{anchor})^{-1}C_{anchor}^\top$$
         
+        tar_origin = target_embs.clone()
+        anch_origin = anchor_embs.clone()
+
         if args.enable_target_proj2_anchor:
             project2anchor = target_embs @ anchor_embs.T @ (anchor_embs @ anchor_embs.T).inverse()  # shape: [1, 77] or [1, 1]
             common_embs = target_embs * project2anchor
@@ -90,10 +93,14 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         if args.robust_PCA:
             print("Enable Robust PCA")
             from util.rpca import robust_pca_target_anchor
-            rpca_result = robust_pca_target_anchor(target_embs, anchor_embs,
-                        lam=args.rpca_lam)
-            target_embs = rpca_result['L_target'].to(device)
+            rpca_result = robust_pca_target_anchor(target_embs, anchor_embs)
+            # target_embs = rpca_result['L_target'].to(device)
             anchor_embs = rpca_result['L_anchor'].to(device)
+
+            print("After RPCA")
+            print("Rel abs: target={}, anchor={}".format(torch.norm(tar_origin - target_embs) / torch.norm(tar_origin), 
+                                                                torch.norm(anch_origin - anchor_embs) / torch.norm(anch_origin)))
+            print("cosine sim: target={}, anchor={}".format(torch.cosine_similarity(tar_origin, target_embs), torch.cosine_similarity(anch_origin, anchor_embs)))
 
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
@@ -191,7 +198,7 @@ if __name__ == '__main__':
     parser.add_argument('--enable_target_proj2_anchor', action='store_true', default=False)
     # robust PCA
     parser.add_argument('--robust_PCA', action="store_true", default=False)
-    parser.add_argument('--rpca_lam', type=float, default=1.0)  # only used when robust_PCA is True
+    parser.add_argument('--rpca_lam', type=float)  # only used when robust_PCA is True
 
     args = parser.parse_args()
     print("[Arguments]")
