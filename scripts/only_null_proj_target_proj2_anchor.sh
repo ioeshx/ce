@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+export HF_ENDPOINT=https://hf-mirror.com
+
 save_path='ckpt/only_null_proj_target_proj2_anchor'
 sample_save_root='result/only_null_proj_target_proj2_anchor'
 target_concepts="Snoopy, Mickey, Spongebob"

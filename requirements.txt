@@ -1,0 +1,8 @@
+numpy
+pandas
+tqdm
+kmeans_pytorch
+torch
+diffusers
+transformers
+acclerate
