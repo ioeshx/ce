@@ -88,10 +88,12 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             common_embs = target_embs * project2anchor
             anchor_embs = common_embs
         if args.robust_PCA:
+            print("Enable Robust PCA")
             from util.rpca import robust_pca_target_anchor
-            rpca_result = robust_pca_target_anchor(target_embs.cpu().numpy(), anchor_embs.cpu().numpy())
-            target_embs = torch.from_numpy(rpca_result['L_target']).to(device)
-            anchor_embs = torch.from_numpy(rpca_result['L_anchor']).to(device)
+            rpca_result = robust_pca_target_anchor(target_embs, anchor_embs,
+                        lam=args.rpca_lam)
+            target_embs = rpca_result['L_target'].to(device)
+            anchor_embs = rpca_result['L_anchor'].to(device)
 
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
@@ -187,8 +189,10 @@ if __name__ == '__main__':
     parser.add_argument('--disable_filter', action='store_true', default=False)
     # null project2retain + my ideas
     parser.add_argument('--enable_target_proj2_anchor', action='store_true', default=False)
+    # robust PCA
     parser.add_argument('--robust_PCA', action="store_true", default=False)
-    
+    parser.add_argument('--rpca_lam', type=float, default=1.0)  # only used when robust_PCA is True
+
     args = parser.parse_args()
     print("[Arguments]")
     for key, value in vars(args).items():
