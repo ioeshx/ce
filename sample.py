@@ -17,10 +17,14 @@ from util.utils import *
 ## 使用template_dict中的prompt模板
 
 
-def diffusion(unet, scheduler, latents, text_embeddings, total_timesteps, start_timesteps=0, guidance_scale=7.5, desc=None, **kwargs,):
+def diffusion(unet, scheduler, latents, text_embeddings, total_timesteps, start_timesteps=0, guidance_scale=7.5, desc=None, show_progress=True, **kwargs,):
 
     scheduler.set_timesteps(total_timesteps)
-    for timestep in tqdm(scheduler.timesteps[start_timesteps: total_timesteps], desc=desc):
+    for timestep in tqdm(
+        scheduler.timesteps[start_timesteps: total_timesteps],
+        desc=desc,
+        disable=not show_progress,
+    ):
 
         latent_model_input = torch.cat([latents] * 2)
         latent_model_input = scheduler.scale_model_input(latent_model_input, timestep)
@@ -59,6 +63,7 @@ def main():
     parser.add_argument('--num_samples', type=int, default=10, help='The number of samples per prompt to generate' )
     parser.add_argument('--batch_size', type=int, default=10, help='The batch size of the sampling process')
     parser.add_argument('--prompts', type=str, default=None)
+    parser.add_argument('--disable_progress_bar', action='store_true', help='Disable tqdm and diffusers progress bars')
     # Erasing Config
     parser.add_argument('--erase_type', type=str, default='', help='instance, style, celebrity')
     parser.add_argument('--target_concept', type=str, default='')
@@ -89,6 +94,8 @@ def main():
 
     # region [Prepare Models]
     pipe = DiffusionPipeline.from_pretrained(args.sd_ckpt, safety_checker=None, torch_dtype=torch.float16).to('cuda')
+    if args.disable_progress_bar:
+        pipe.set_progress_bar_config(disable=True)
     pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
     unet, tokenizer, text_encoder, vae = pipe.unet, pipe.tokenizer, pipe.text_encoder, pipe.vae
     if 'edit' in mode_list:
@@ -119,14 +126,16 @@ def main():
                                                    text_embeddings=torch.cat([uncond_embedding] * bs + [embedding] * bs, dim=0), 
                                                    total_timesteps=args.total_timesteps, 
                                                    guidance_scale=args.guidance_scale, 
-                                                   desc=f"{count} x {prompt} | original")
+                                                   desc=f"{count} x {prompt} | original",
+                                                   show_progress=not args.disable_progress_bar)
                 if 'edit' in mode_list:
                     save_images['edit'] = diffusion(unet=unet_edit, scheduler=pipe.scheduler,
                                                latents=latent, start_timesteps=0, 
                                                text_embeddings=torch.cat([uncond_embedding] * bs + [embedding] * bs, dim=0), 
                                                total_timesteps=args.total_timesteps, 
                                                guidance_scale=args.guidance_scale, 
-                                               desc=f"{count} x {prompt} | edit")
+                                               desc=f"{count} x {prompt} | edit",
+                                               show_progress=not args.disable_progress_bar)
                                         
                 save_path = os.path.join(args.save_root, args.target_concept.replace(', ', '_'), concept)
                 for mode in mode_list: os.makedirs(os.path.join(save_path, mode), exist_ok=True)

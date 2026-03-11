@@ -12,7 +12,7 @@ from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
 
 from util.template import template_dict
 from util.rpca import robust_pca_target_anchor
-from util.utils import seed_everything, get_token, get_textencoding, process_img
+from util.utils import seed_everything, get_token_id, get_token, get_textencoding, process_img
 
 
 def diffusion(
@@ -96,6 +96,8 @@ def main():
     parser.add_argument('--rpca_lam', type=float)
     parser.add_argument('--rpca_max_iter', type=int, default=1000)
     parser.add_argument('--rpca_tol', type=float, default=1e-7)
+    parser.add_argument('--enable_full_prompt', action='store_true', default=False)
+
     args = parser.parse_args()
 
     assert args.num_samples >= args.batch_size and args.num_samples % args.batch_size == 0, (
@@ -148,17 +150,24 @@ def main():
         for t_idx, tmpl in enumerate(templates):
             target_prompt = tmpl.format(args.target)
             anchor_prompt = tmpl.format(args.anchor)
-
-            target_tokens = get_token(target_prompt, tokenizer)
-            anchor_tokens = get_token(anchor_prompt, tokenizer)
-
             # Keep [77, 768] so RPCA is computed on the full prompt embedding.
-            target_emb = get_textencoding(target_tokens, text_encoder)[0]
-            anchor_emb = get_textencoding(anchor_tokens, text_encoder)[0]
+            target_token = get_token_id(target_prompt, tokenizer, False)
+            anchor_token = get_token_id(anchor_prompt, tokenizer, False)
+            target_emb = get_textencoding(target_token.input_ids, text_encoder)[0]
+            anchor_emb = get_textencoding(anchor_token.input_ids, text_encoder)[0]
+            # Perform RPCA on the last token embedding
+            tar_last_token_idx = target_token.attention_mask[0].sum().item() - 2
+            anc_last_token_idx = anchor_token.attention_mask[0].sum().item() - 2
+            t_emb = target_emb[tar_last_token_idx].unsqueeze(0).clone()
+            a_emb = anchor_emb[anc_last_token_idx].unsqueeze(0).clone()
+            if args.enable_full_prompt:
+                t_emb = target_emb.clone()
+                a_emb = anchor_emb.clone()
 
+                
             rpca_result = robust_pca_target_anchor(
-                target_emb,
-                anchor_emb,
+                t_emb,
+                a_emb,
                 lam=args.rpca_lam,
                 max_iter=args.rpca_max_iter,
                 tol=args.rpca_tol,
@@ -166,28 +175,34 @@ def main():
                 dtype=torch.float32,
             )
 
-            target_emb_rpca = rpca_result['L_target'].to(target_emb.dtype)
-            anchor_emb_rpca = rpca_result['L_anchor'].to(anchor_emb.dtype)
+            t_emb_rpca = rpca_result['L_target'].to(target_emb.dtype)
+            a_emb_rpca = rpca_result['L_anchor'].to(anchor_emb.dtype)
             print("After RPCA")
-            rel_target = torch.norm(target_emb - target_emb_rpca) / (torch.norm(target_emb) + 1e-12)
-            rel_anchor = torch.norm(anchor_emb - anchor_emb_rpca) / (torch.norm(anchor_emb) + 1e-12)
+            rel_target = torch.norm(t_emb - t_emb_rpca) / (torch.norm(t_emb) + 1e-12)
+            rel_anchor = torch.norm(a_emb - a_emb_rpca) / (torch.norm(a_emb) + 1e-12)
             cos_target = torch.cosine_similarity(
-                target_emb.reshape(1, -1),
-                target_emb_rpca.reshape(1, -1),
-                dim=1,
-            ).item()
+                t_emb.reshape(1, -1),
+                t_emb_rpca.reshape(1, -1),
+                dim=1,).item()
             cos_anchor = torch.cosine_similarity(
-                anchor_emb.reshape(1, -1),
-                anchor_emb_rpca.reshape(1, -1),
-                dim=1,
-            ).item()
+                a_emb.reshape(1, -1),
+                a_emb_rpca.reshape(1, -1),
+                dim=1,).item()
             print(f"Rel abs: target={rel_target.item():.6f}, anchor={rel_anchor.item():.6f}")
             print(f"Cosine sim: target={cos_target:.6f}, anchor={cos_anchor:.6f}")
+            
+            t_emb_final = target_emb.clone()
+            t_emb_final[tar_last_token_idx] = t_emb_rpca
+            a_emb_final = anchor_emb.clone()
+            a_emb_final[anc_last_token_idx] = a_emb_rpca
+            if args.enable_full_prompt:
+                t_emb_final= t_emb_rpca
+                a_emb_final = a_emb_rpca
 
             target_emb_batched = target_emb.unsqueeze(0)
-            target_emb_rpca_batched = target_emb_rpca.unsqueeze(0)
             anchor_emb_batched = anchor_emb.unsqueeze(0)
-            anchor_emb_rpca_batched = anchor_emb_rpca.unsqueeze(0)
+            target_emb_rpca_batched = t_emb_final.unsqueeze(0)
+            anchor_emb_rpca_batched = a_emb_final.unsqueeze(0)
 
             text_emb_target_original = torch.cat(
                 [uncond_embedding] * args.batch_size + [target_emb_batched] * args.batch_size,

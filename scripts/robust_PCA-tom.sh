@@ -2,9 +2,14 @@
 
 export HF_ENDPOINT=https://hf-mirror.com
 
-save_path='ckpt/robust_PCA'
-sample_save_root='result/robust_PCA'
 target_concepts="Snoopy, Mickey, Spongebob"
+anchor_concepts="Tom and Jerry"
+
+anchor_slug=$(printf '%s' "$anchor_concepts" | tr ' ' '_')
+
+save_path="ckpt/robust_PCA_${anchor_slug}"
+sample_save_root="result/robust_PCA_${anchor_slug}"
+
 contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
 benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 
@@ -12,11 +17,11 @@ benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 prompts_csv='/path/to/prompts.csv'
 
 ckpt_meta=$(mktemp)
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 python erase.py \
-    --target_concepts "Snoopy, Mickey, Spongebob" \
-    --anchor_concepts "" \
+    --target_concepts "${target_concepts}" \
+    --anchor_concepts "${anchor_concepts}" \
     --retain_path "data/instance.csv" \
     --header "concept" \
     --params V \
@@ -24,8 +29,8 @@ python erase.py \
     --disable_filter \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --robust_PCA \
-    --rpca_lam 0.5
+    --robust_PCA 
+    # --rpca_lam 0.1 \
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"

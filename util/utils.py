@@ -34,6 +34,9 @@ def seed_everything(seed, deterministic=False):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
+def get_token_id(prompt, tokenizer=None, return_ids_only=True):
+    token_ids = tokenizer(prompt, padding="max_length", max_length=tokenizer.model_max_length, truncation=True, return_tensors="pt")
+    return token_ids.input_ids if return_ids_only else token_ids
 
 def get_token(prompt, tokenizer=None):
     tokens = tokenizer(prompt, padding="max_length", max_length=77, truncation=True, return_tensors="pt").input_ids
