@@ -63,7 +63,8 @@ def main():
     parser.add_argument('--num_samples', type=int, default=10, help='The number of samples per prompt to generate' )
     parser.add_argument('--batch_size', type=int, default=10, help='The batch size of the sampling process')
     parser.add_argument('--prompts', type=str, default=None)
-    parser.add_argument('--disable_progress_bar', action='store_true', help='Disable tqdm and diffusers progress bars')
+    # disable progress bar
+    parser.add_argument('--disable_progress_bar', action='store_true', default=True, help='Disable tqdm and diffusers progress bars')
     # Erasing Config
     parser.add_argument('--erase_type', type=str, default='', help='instance, style, celebrity')
     parser.add_argument('--target_concept', type=str, default='')
