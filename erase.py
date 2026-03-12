@@ -102,10 +102,17 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         tar_origin = target_embs.clone()
         anch_origin = anchor_embs.clone()
 
-        if args.enable_target_proj2_anchor:
-            project2anchor = target_embs @ anchor_embs.T @ (anchor_embs @ anchor_embs.T).inverse()  # shape: [1, 77] or [1, 1]
-            common_embs = target_embs * project2anchor
-            anchor_embs = common_embs
+        if args.t2a:
+            print("Enable t2a")
+            project2a_coeff = target_embs @ anchor_embs.T @ (anchor_embs @ anchor_embs.T).inverse()  # shape: [1, 77] or [1, 1]
+            anchor_proj = anchor_embs * project2a_coeff
+            anchor_embs = anchor_embs + anchor_proj
+        if args.a2t:
+            print("Enable a2t")
+            project2t_coeff = anchor_embs @ target_embs.T @ (target_embs @ target_embs.T).inverse()  # shape: [1, 77] or [1, 1]
+            tar_proj = target_embs * project2t_coeff
+            anchor_embs = anchor_embs + tar_proj
+
         if args.robust_PCA:
             print("Enable Robust PCA")
             from util.rpca import robust_pca_target_anchor
@@ -119,6 +126,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print("cosine sim: target={}, anchor={}".format(torch.cosine_similarity(tar_origin, target_embs), torch.cosine_similarity(anch_origin, anchor_embs)))
         if args.pabs:
             anchor_embs = anchor_final_embes
+          
 
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
@@ -221,6 +229,9 @@ if __name__ == '__main__':
     parser.add_argument('--rpca_lam', type=float)  # only used when robust_PCA is True
     # principal angle between subspaces
     parser.add_argument('--pabs', action='store_true', default=False)
+    # t2a/a2t
+    parser.add_argument('--t2a', action='store_true', default=False)
+    parser.add_argument('--a2t', action='store_true', default=False)
 
     args = parser.parse_args()
     print("[Arguments]")
