@@ -69,6 +69,22 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     # 擦除多个概念时，取它们的平均作为最终的擦除目标；如果是单个概念，则直接使用该概念的文本嵌入作为擦除目标
     if args.enable_target_proj2_anchor:
         print("Enable Common = target projection to anchor.")
+    if args.pabs:
+        print("Enable Principal Angle between Subspaces (PABS) analysis.")
+        from util.pabs import compute_principal_angles
+        t_token = get_token_id(target_concepts, pipeline.tokenizer, False) # [len(target_concepts), 77]
+        a_token = get_token_id(anchor_concepts, pipeline.tokenizer, False) # [len(anchor_concepts), 77]
+        t_embs = pipeline.text_encoder(t_token.input_ids.to(device)).last_hidden_state[0] # [len(target_concepts), 77, 768]
+        a_embs = pipeline.text_encoder(a_token.input_ids.to(device)).last_hidden_state[0] # [len(anchor_concepts), 77, 768]
+        t_last_embs = t_embs[t_token.attention_mask[0].sum().item()-2, :].unsqueeze(1) # shape: [len(target_concepts), 1, 768]
+        a_last_embs = a_embs[a_token.attention_mask[0].sum().item()-2, :].unsqueeze(1) # shape: [len(anchor_concepts), 1, 768]
+        cos_theta, angles_degree, P_target, P_anchor = compute_principal_angles(t_last_embs, a_last_embs)
+        anchor_final_embes = P_anchor[0].unsqueeze(0) # shape: [1, 768]
+        print("diff between original anchor and PABS anchor: ", torch.norm(a_last_embs.squeeze(1) - anchor_final_embes) / torch.norm(a_last_embs.squeeze(1)))
+        print("shape of anchor_final_embes: ", anchor_final_embes.shape)
+        print("Cosine of principal angles:", cos_theta.detach().cpu().numpy())
+
+
     sum_anchor_target, sum_target_target = [], []
     for i in range(0, len(target_concepts)):
         target_inputs = get_token_id(target_concepts[i], pipeline.tokenizer, return_ids_only=False)
@@ -101,9 +117,12 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print("Rel abs: target={}, anchor={}".format(torch.norm(tar_origin - target_embs) / torch.norm(tar_origin), 
                                                                 torch.norm(anch_origin - anchor_embs) / torch.norm(anch_origin)))
             print("cosine sim: target={}, anchor={}".format(torch.cosine_similarity(tar_origin, target_embs), torch.cosine_similarity(anch_origin, anchor_embs)))
+        if args.pabs:
+            anchor_embs = anchor_final_embes
 
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
+    ## 这里用了平均
     sum_target_target, sum_anchor_target = torch.stack(sum_target_target).mean(0), torch.stack(sum_anchor_target).mean(0)
     # shape of both: [768, 768]
     # endregion
@@ -124,6 +143,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             last_ret_embs.append(ret_embs[torch.arange(ret_embs.size(0)), last_subject_indices].unsqueeze(1)) # shape: [chunk_size, 1, 768]
     last_ret_embs = torch.cat(last_ret_embs)
     last_ret_embs = last_ret_embs[torch.randperm(last_ret_embs.size(0))]  # shuffle, shape [total_retain_num, 1, 768]
+    # 在后面也做了平均，所以retain的处理方式和target/anchor是一致的，都是取文本嵌入的平均作为最终的retain矩阵；如果retain文本为空，则使用全零输入的文本嵌入（同样取平均）作为retain矩阵
     # endregion
     
     ret_ret_embs = last_ret_embs.squeeze(1).T @ last_ret_embs.squeeze(1)
@@ -199,6 +219,8 @@ if __name__ == '__main__':
     # robust PCA
     parser.add_argument('--robust_PCA', action="store_true", default=False)
     parser.add_argument('--rpca_lam', type=float)  # only used when robust_PCA is True
+    # principal angle between subspaces
+    parser.add_argument('--pabs', action='store_true', default=False)
 
     args = parser.parse_args()
     print("[Arguments]")
