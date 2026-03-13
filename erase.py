@@ -102,16 +102,22 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         tar_origin = target_embs.clone()
         anch_origin = anchor_embs.clone()
 
+        project2a_coeff = target_embs @ anchor_embs.T @ (anchor_embs @ anchor_embs.T).inverse()  # shape: [1, 77] or [1, 1]
+        anchor_proj = anchor_embs * project2a_coeff
+        project2t_coeff = anchor_embs @ target_embs.T @ (target_embs @ target_embs.T).inverse()  # shape: [1, 77] or [1, 1]
+        tar_proj = target_embs * project2t_coeff
         if args.t2a:
-            print("Enable t2a")
-            project2a_coeff = target_embs @ anchor_embs.T @ (anchor_embs @ anchor_embs.T).inverse()  # shape: [1, 77] or [1, 1]
-            anchor_proj = anchor_embs * project2a_coeff
+            print("Enable t2a+anchor")
             anchor_embs = anchor_embs + anchor_proj
         if args.a2t:
-            print("Enable a2t")
-            project2t_coeff = anchor_embs @ target_embs.T @ (target_embs @ target_embs.T).inverse()  # shape: [1, 77] or [1, 1]
-            tar_proj = target_embs * project2t_coeff
+            print("Enable a2t+anchor")
             anchor_embs = anchor_embs + tar_proj
+        if args.t2a_only:
+            print("Enable t2a only")
+            anchor_embs = anchor_proj
+        if args.a2t_only:
+            print("Enable a2t only")
+            anchor_embs = tar_proj
 
         if args.robust_PCA:
             print("Enable Robust PCA")
@@ -230,8 +236,11 @@ if __name__ == '__main__':
     # principal angle between subspaces
     parser.add_argument('--pabs', action='store_true', default=False)
     # t2a/a2t
-    parser.add_argument('--t2a', action='store_true', default=False)
-    parser.add_argument('--a2t', action='store_true', default=False)
+    mutually_excl_group = parser.add_mutually_exclusive_group(required=False)
+    mutually_excl_group.add_argument('--t2a', action='store_true', default=False)
+    mutually_excl_group.add_argument('--a2t', action='store_true', default=False)
+    mutually_excl_group.add_argument('--t2a_only', action='store_true', default=False)
+    mutually_excl_group.add_argument('--a2t_only', action='store_true', default=False)
 
     args = parser.parse_args()
     print("[Arguments]")

@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts="cartoon character"
@@ -19,7 +18,7 @@ benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 prompts_csv='/path/to/prompts.csv'
 
 ckpt_meta=$(mktemp)
-
+export CUDA_VISIBLE_DEVICES=1
 
 python erase.py \
     --target_concepts "${target_concepts}" \
@@ -31,7 +30,7 @@ python erase.py \
     --disable_filter \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --t2a
+    --a2t_only 
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"

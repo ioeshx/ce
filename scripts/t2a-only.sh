@@ -31,7 +31,7 @@ python erase.py \
     --disable_filter \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --t2a
+    --t2a_only
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"
