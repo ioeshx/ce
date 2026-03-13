@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 target="Snoopy"
 anchor="cartoon character"
