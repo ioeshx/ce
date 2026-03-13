@@ -5,20 +5,21 @@ export CUDA_VISIBLE_DEVICES=0
 
 target="Snoopy"
 anchor="cartoon character"
+save_root="result/orth_template"
 
 benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 
 echo "[INFO] Running Orthogonal Projection Experiment: orth_template_a2t_proj_only"
 
 python orth_exp.py \
-    --save_root "result/orth" \
+    --save_root "${save_root}" \
     --target "${target}" \
     --anchor "${anchor}" \
     --proj_direction "a2t" \
     --gen_mode "proj_only" 
 
 anchor_slug=$(printf '%s' "$anchor" | tr ' ' '_')
-res_dir="result/orth/${target}_to_${anchor}_proj_a2t_proj_only"
+res_dir="${save_root}/${target}_to_${anchor_slug}_proj_a2t_proj_only"
 
 image_root="${res_dir}/projected"
 fid_ref="${res_dir}/target_original"

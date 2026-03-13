@@ -262,7 +262,15 @@ def main():
 
             for b in range(args.batch_size):
                 global_idx = rep * args.batch_size + b
-                file_stub = f'{t_idx:03d}_{_sanitize_filename(tmpl)[:80]}_{global_idx:03d}'
+                
+                # Format to `prompt_number` to match CE benchmark requirements
+                if args.use_concept_as_prompt:
+                    # When using concept, the prompt is essentially target
+                    prompt_str = args.target
+                else:
+                    prompt_str = tmpl.format(args.target)
+                    
+                file_stub = f'{_sanitize_filename(prompt_str)[:80]}_{global_idx:03d}'
 
                 decoded_imgs = {
                     name: _decode_latents_to_image(save_latents[name][b], vae)
@@ -270,9 +278,11 @@ def main():
                 }
 
                 for mode_name, img in decoded_imgs.items():
+                    # For original generation, usually 'target_original' is the reference
                     img.save(os.path.join(mode_dirs[mode_name], f'{file_stub}.png'))
 
                 compare_img = _combine_1x3(decoded_imgs, labels)
+                # Keep compare in same format or similar format
                 compare_img.save(os.path.join(mode_dirs['compare'], f'{file_stub}.jpg'))
 
     print(f'[DONE] Saved pilot experiment results to: {root}')
