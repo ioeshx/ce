@@ -92,6 +92,7 @@ def main():
     parser.add_argument('--total_timesteps', type=int, default=20)
     # orthogonal projection related args
     parser.add_argument('--use_concept_as_prompt', action='store_true', default=False)
+    parser.add_argument('--extract_concept_tokens', action='store_true', default=False)
     parser.add_argument('--proj_direction', type=str, default='t2a', choices=['t2a', 'a2t'])
     parser.add_argument('--gen_mode', type=str, default='proj_only', choices=['proj_only', 'add_to_anchor'])
     parser.add_argument('--proj_length', type=str, default='all', choices=['all', 'max_valid'])
@@ -170,8 +171,38 @@ def main():
                     t_feat = target_emb[1:]
                     a_feat = anchor_emb[1:]
             else:
-                t_feat = target_emb[tar_last_token_idx:tar_last_token_idx+1]
-                a_feat = anchor_emb[anc_last_token_idx:anc_last_token_idx+1]
+                if args.extract_concept_tokens:
+                    prefix = tmpl.split('{}')[0]
+                    prefix_toks = get_token_id(prefix, tokenizer, False)
+                    # number of valid tokens in prefix
+                    prefix_len = prefix_toks.attention_mask[0].sum().item() - 2
+                    
+                    t_start = 1 + prefix_len
+                    t_end = tar_last_token_idx + 1
+                    a_start = 1 + prefix_len
+                    a_end = anc_last_token_idx + 1
+                    
+                    t_feat_raw = target_emb[t_start:t_end]
+                    a_feat_raw = anchor_emb[a_start:a_end]
+                    
+                    max_concept_len = max(t_feat_raw.shape[0], a_feat_raw.shape[0])
+                    
+                    if t_feat_raw.shape[0] < max_concept_len:
+                        pad_len = max_concept_len - t_feat_raw.shape[0]
+                        pad_embs = target_emb[tar_last_token_idx + 2 : tar_last_token_idx + 2 + pad_len]
+                        t_feat = torch.cat([t_feat_raw, pad_embs], dim=0)
+                    else:
+                        t_feat = t_feat_raw
+                        
+                    if a_feat_raw.shape[0] < max_concept_len:
+                        pad_len = max_concept_len - a_feat_raw.shape[0]
+                        pad_embs = anchor_emb[anc_last_token_idx + 2 : anc_last_token_idx + 2 + pad_len]
+                        a_feat = torch.cat([a_feat_raw, pad_embs], dim=0)
+                    else:
+                        a_feat = a_feat_raw
+                else:
+                    t_feat = target_emb[tar_last_token_idx:tar_last_token_idx+1]
+                    a_feat = anchor_emb[anc_last_token_idx:anc_last_token_idx+1]
                 
             if args.proj_direction == 't2a':
                 # project target to anchor
@@ -189,7 +220,10 @@ def main():
                     else:
                         t_emb_final[1:] = new_feat
                 else:
-                    t_emb_final[tar_last_token_idx:tar_last_token_idx+1] = new_feat
+                    if args.extract_concept_tokens:
+                        t_emb_final[t_start:t_end] = new_feat[:t_feat_raw.shape[0]]
+                    else:
+                        t_emb_final[tar_last_token_idx:tar_last_token_idx+1] = new_feat
             else:
                 # project anchor to target
                 coeff = a_feat.float() @ t_feat.float().T @ torch.linalg.pinv(t_feat.float() @ t_feat.float().T)
@@ -206,7 +240,10 @@ def main():
                     else:
                         a_emb_final[1:] = new_feat
                 else:
-                    a_emb_final[anc_last_token_idx:anc_last_token_idx+1] = new_feat
+                    if args.extract_concept_tokens:
+                        a_emb_final[a_start:a_end] = new_feat[:a_feat_raw.shape[0]]
+                    else:
+                        a_emb_final[anc_last_token_idx:anc_last_token_idx+1] = new_feat
 
             target_emb_batched = target_emb.unsqueeze(0)
             anchor_emb_batched = anchor_emb.unsqueeze(0)
