@@ -94,6 +94,14 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         if target_concepts == ['nudity']:
             target_embs = target_embs[1:, :]  # all tokens
             anchor_embs = anchor_embs[1:, :]  # all tokens
+        if args.max_valid_tokens:
+            print("Enable all token editing")
+            t_last_index = target_inputs.attention_mask[0].sum().item() - 2
+            a_last_index = anchor_inputs.attention_mask[0].sum().item() - 2
+            max_valid_idx = max(t_last_index, a_last_index)  
+
+            target_embs = target_embs[1:max_valid_idx+1, :]  # all tokens
+            anchor_embs = anchor_embs[1:max_valid_idx+1, :]  # all tokens
         else:
             target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
             anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
@@ -103,19 +111,25 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         anch_origin = anchor_embs.clone()
 
         project2a_coeff = target_embs @ anchor_embs.T @ (anchor_embs @ anchor_embs.T).inverse()  # shape: [1, 77] or [1, 1]
-        anchor_proj = anchor_embs * project2a_coeff
         project2t_coeff = anchor_embs @ target_embs.T @ (target_embs @ target_embs.T).inverse()  # shape: [1, 77] or [1, 1]
+        if(args.max_valid_tokens):
+            project2a_coeff = torch.diag(project2a_coeff).unsqueeze(1)  # shape: [num_valid_tokens]
+            project2t_coeff = torch.diag(project2t_coeff).unsqueeze(1)  # shape: [num_valid_tokens]
+            print("Project2a coeff shape: ", project2a_coeff.shape)
+            print("Project2t coeff shape: ", project2t_coeff.shape)
+
+        anchor_proj = anchor_embs * project2a_coeff
         tar_proj = target_embs * project2t_coeff
         if args.t2a:
             print("Enable t2a+anchor")
             anchor_embs = anchor_embs + anchor_proj
-        if args.a2t:
+        elif args.a2t:
             print("Enable a2t+anchor")
             anchor_embs = anchor_embs + tar_proj
-        if args.t2a_only:
+        elif args.t2a_only:
             print("Enable t2a only")
             anchor_embs = anchor_proj
-        if args.a2t_only:
+        elif args.a2t_only:
             print("Enable a2t only")
             anchor_embs = tar_proj
 
@@ -241,6 +255,9 @@ if __name__ == '__main__':
     mutually_excl_group.add_argument('--a2t', action='store_true', default=False)
     mutually_excl_group.add_argument('--t2a_only', action='store_true', default=False)
     mutually_excl_group.add_argument('--a2t_only', action='store_true', default=False)
+
+    parser.add_argument('--all_token', action='store_true', default=False)
+    parser.add_argument('--max_valid_tokens', action='store_true', default=False, help="")
 
     args = parser.parse_args()
     print("[Arguments]")

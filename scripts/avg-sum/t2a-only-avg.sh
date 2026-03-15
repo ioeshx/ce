@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts="cartoon character"
@@ -31,7 +31,7 @@ python erase-avg.py \
     --disable_filter \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --agg_mode sum_delta \
+    --agg_mode avg_delta \
     --t2a_only
 
 edit_ckpt=$(cat "${ckpt_meta}")

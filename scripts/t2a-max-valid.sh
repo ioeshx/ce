@@ -21,7 +21,7 @@ prompts_csv='/path/to/prompts.csv'
 ckpt_meta=$(mktemp)
 
 
-python erase-avg.py \
+python erase.py \
     --target_concepts "${target_concepts}" \
     --anchor_concepts "${anchor_concepts}" \
     --retain_path "data/instance.csv" \
@@ -31,8 +31,8 @@ python erase-avg.py \
     --disable_filter \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --agg_mode avg_delta \
-    --t2a_only
+    --t2a \
+    --max_valid_tokens
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"
