@@ -5,4 +5,4 @@ kmeans_pytorch
 torch
 diffusers
 transformers
-acclerate
+accelerate
