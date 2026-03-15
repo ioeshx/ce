@@ -86,6 +86,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
 
 
     sum_anchor_target, sum_target_target = [], []
+    all_target_embs_list = []
     for i in range(0, len(target_concepts)):
         target_inputs = get_token_id(target_concepts[i], pipeline.tokenizer, return_ids_only=False)
         target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
@@ -107,6 +108,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
         # $$P = C_{anchor}(C_{anchor}^\top C_{anchor})^{-1}C_{anchor}^\top$$
         
+        # region [project]
         tar_origin = target_embs.clone()
         anch_origin = anchor_embs.clone()
 
@@ -147,7 +149,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         if args.pabs:
             anchor_embs = anchor_final_embes
           
-
+        all_target_embs_list.append(target_embs)
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
     ## 这里用了平均
@@ -171,6 +173,56 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             last_ret_embs.append(ret_embs[torch.arange(ret_embs.size(0)), last_subject_indices].unsqueeze(1)) # shape: [chunk_size, 1, 768]
     last_ret_embs = torch.cat(last_ret_embs)
     last_ret_embs = last_ret_embs[torch.randperm(last_ret_embs.size(0))]  # shuffle, shape [total_retain_num, 1, 768]
+
+    # Hard-Boundary Retain Augmentation
+    if args.hard_boundary_aug:
+        C0_sq = last_ret_embs.squeeze(1) # [total_retain_num, 768]
+        
+        if args.boundary_per_concept:
+            augmented_samples = []
+            for t_embs in all_target_embs_list:
+                C1_local = t_embs.mean(dim=0, keepdim=True) # [1, 768]
+                
+                C0_norm = torch.nn.functional.normalize(C0_sq, p=2, dim=1)
+                C1_norm = torch.nn.functional.normalize(C1_local, p=2, dim=1)
+                sim = torch.matmul(C0_norm, C1_norm.T).squeeze(1) 
+                
+                topk = min(args.boundary_topk, C0_sq.size(0))
+                if topk > 0:
+                    hard_indices = torch.topk(sim, topk).indices
+                    C0_hard = C0_sq[hard_indices]
+                    diff = C0_hard - C1_local
+                    diff_norm = torch.norm(diff, p=2, dim=1, keepdim=True) + 1e-8
+                    C0_enhanced = C0_hard + args.boundary_gamma * (diff / diff_norm)
+                    augmented_samples.append(C0_enhanced)
+            
+            if augmented_samples:
+                all_augmented = torch.cat(augmented_samples, dim=0)
+                last_ret_embs = torch.cat([last_ret_embs, all_augmented.unsqueeze(1)], dim=0)
+                print(f"[INFO] Applied Hard-Boundary Augmentation: Added {all_augmented.size(0)} augmented samples toward boundary (Per Concept). Gamma: {args.boundary_gamma}")
+        else:
+            C1_global = torch.cat(all_target_embs_list, dim=0).mean(dim=0, keepdim=True) # [1, 768]
+            
+            # Calculate cosine similarity
+            C0_norm = torch.nn.functional.normalize(C0_sq, p=2, dim=1)
+            C1_norm = torch.nn.functional.normalize(C1_global, p=2, dim=1)
+            sim = torch.matmul(C0_norm, C1_norm.T).squeeze(1) # [total_retain_num]
+            
+            # Find Top-K nearest
+            topk = min(args.boundary_topk, C0_sq.size(0))
+            if topk > 0:
+                hard_indices = torch.topk(sim, topk).indices
+                
+                C0_hard = C0_sq[hard_indices] # [topk, 768]
+                
+                # Enhance: C0_enhanced = C0 + gamma * (C0 - C1) / ||C0 - C1||
+                diff = C0_hard - C1_global
+                diff_norm = torch.norm(diff, p=2, dim=1, keepdim=True) + 1e-8
+                C0_enhanced = C0_hard + args.boundary_gamma * (diff / diff_norm)
+                
+                last_ret_embs = torch.cat([last_ret_embs, C0_enhanced.unsqueeze(1)], dim=0)
+                print(f"[INFO] Applied Hard-Boundary Augmentation: Added {topk} augmented samples toward boundary. Gamma: {args.boundary_gamma}")
+
     # 在后面也做了平均，所以retain的处理方式和target/anchor是一致的，都是取文本嵌入的平均作为最终的retain矩阵；如果retain文本为空，则使用全零输入的文本嵌入（同样取平均）作为retain矩阵
     # endregion
     
@@ -249,6 +301,11 @@ if __name__ == '__main__':
     parser.add_argument('--rpca_lam', type=float)  # only used when robust_PCA is True
     # principal angle between subspaces
     parser.add_argument('--pabs', action='store_true', default=False)
+    # boundary enhancement
+    parser.add_argument('--hard_boundary_aug', action='store_true', default=False)
+    parser.add_argument('--boundary_topk', type=int, default=10)
+    parser.add_argument('--boundary_gamma', type=float, default=0.1)
+    parser.add_argument('--boundary_per_concept', action='store_true', default=False)
     # t2a/a2t
     mutually_excl_group = parser.add_mutually_exclusive_group(required=False)
     mutually_excl_group.add_argument('--t2a', action='store_true', default=False)

@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-
+# hd=hard boundary
 export HF_ENDPOINT=https://hf-mirror.com
 export CUDA_VISIBLE_DEVICES=1
 
@@ -29,7 +29,9 @@ python erase.py \
     --disable_filter \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --a2t
+    --hard_boundary_aug \
+    --boundary_topk 5
+
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"
