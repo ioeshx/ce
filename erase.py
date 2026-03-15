@@ -223,6 +223,22 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                 last_ret_embs = torch.cat([last_ret_embs, C0_enhanced.unsqueeze(1)], dim=0)
                 print(f"[INFO] Applied Hard-Boundary Augmentation: Added {topk} augmented samples toward boundary. Gamma: {args.boundary_gamma}")
 
+    # Semantic Manifold Interpolation
+    if args.manifold_interp and args.interp_samples > 0:
+        current_num = last_ret_embs.size(0)
+        if current_num > 1:
+            idx1 = torch.randint(0, current_num, (args.interp_samples,))
+            idx2 = torch.randint(0, current_num, (args.interp_samples,))
+            
+            theta = torch.rand((args.interp_samples, 1, 1), device=device)
+            
+            C0_i = last_ret_embs[idx1]
+            C0_j = last_ret_embs[idx2]
+            
+            C0_interp = theta * C0_i + (1 - theta) * C0_j
+            last_ret_embs = torch.cat([last_ret_embs, C0_interp], dim=0)
+            print(f"[INFO] Applied Semantic Manifold Interpolation: Added {args.interp_samples} interpolated retain samples.")
+
     # 在后面也做了平均，所以retain的处理方式和target/anchor是一致的，都是取文本嵌入的平均作为最终的retain矩阵；如果retain文本为空，则使用全零输入的文本嵌入（同样取平均）作为retain矩阵
     # endregion
     
@@ -306,6 +322,9 @@ if __name__ == '__main__':
     parser.add_argument('--boundary_topk', type=int, default=10)
     parser.add_argument('--boundary_gamma', type=float, default=0.1)
     parser.add_argument('--boundary_per_concept', action='store_true', default=False)
+    # semantic manifold interpolation
+    parser.add_argument('--manifold_interp', action='store_true', default=False)
+    parser.add_argument('--interp_samples', type=int, default=100)
     # t2a/a2t
     mutually_excl_group = parser.add_mutually_exclusive_group(required=False)
     mutually_excl_group.add_argument('--t2a', action='store_true', default=False)
