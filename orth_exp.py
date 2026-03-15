@@ -22,10 +22,11 @@ def diffusion(
     total_timesteps,
     start_timesteps=0,
     guidance_scale=7.5,
+    show_progress=False,
     desc=None,
 ):
     scheduler.set_timesteps(total_timesteps)
-    for timestep in tqdm(scheduler.timesteps[start_timesteps:total_timesteps], desc=desc):
+    for timestep in tqdm(scheduler.timesteps[start_timesteps:total_timesteps], desc=desc, show_progress=show_progress):
         latent_model_input = torch.cat([latents] * 2)
         latent_model_input = scheduler.scale_model_input(latent_model_input, timestep)
 
@@ -90,6 +91,8 @@ def main():
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--guidance_scale', type=float, default=7.5)
     parser.add_argument('--total_timesteps', type=int, default=20)
+    parser.add_argument('--show_progress', action='store_true', default=False)
+
     # orthogonal projection related args
     parser.add_argument('--use_concept_as_prompt', action='store_true', default=False)
     parser.add_argument('--extract_concept_tokens', action='store_true', default=False)
@@ -143,34 +146,93 @@ def main():
         'projected': 'projected-embedding',
     }
 
+    # Pre-calculate projection if use_concept_as_prompt
+    precalc_t_emb_final = None
+    precalc_a_emb_final = None
+    precalc_target_emb = None
+    precalc_anchor_emb = None
+
+    if args.use_concept_as_prompt:
+        tmpl = templates[0]
+        target_prompt = tmpl.format(args.target)
+        anchor_prompt = tmpl.format(args.anchor)
+        
+        target_token = get_token_id(target_prompt, tokenizer, False)
+        anchor_token = get_token_id(anchor_prompt, tokenizer, False)
+        target_emb = get_textencoding(target_token.input_ids, text_encoder)[0]
+        anchor_emb = get_textencoding(anchor_token.input_ids, text_encoder)[0]
+        
+        tar_last_token_idx = target_token.attention_mask[0].sum().item() - 2
+        anc_last_token_idx = anchor_token.attention_mask[0].sum().item() - 2
+
+        t_emb_final = target_emb.clone()
+        a_emb_final = anchor_emb.clone()
+        
+        if args.proj_length == 'max_valid':
+            max_len = max(target_token.attention_mask[0].sum().item(), anchor_token.attention_mask[0].sum().item())
+            t_feat = target_emb[1:max_len]
+            a_feat = anchor_emb[1:max_len]
+        else:
+            t_feat = target_emb[1:]
+            a_feat = anchor_emb[1:]
+            
+        if args.proj_direction == 't2a':
+            coeff = t_feat.float() @ a_feat.float().T @ torch.linalg.pinv(a_feat.float() @ a_feat.float().T)
+            proj = (coeff @ a_feat.float()).to(t_feat.dtype)
+            
+            if args.gen_mode == 'proj_only':
+                new_feat = proj
+            else:
+                new_feat = a_feat + proj
+                
+            if args.proj_length == 'max_valid':
+                t_emb_final[1:max_len] = new_feat
+            else:
+                t_emb_final[1:] = new_feat
+        else:
+            coeff = a_feat.float() @ t_feat.float().T @ torch.linalg.pinv(t_feat.float() @ t_feat.float().T)
+            proj = (coeff @ t_feat.float()).to(t_feat.dtype)
+            
+            if args.gen_mode == 'proj_only':
+                new_feat = proj
+            else:
+                new_feat = a_feat + proj
+
+            if args.proj_length == 'max_valid':
+                a_emb_final[1:max_len] = new_feat
+            else:
+                a_emb_final[1:] = new_feat
+                
+        precalc_t_emb_final = t_emb_final
+        precalc_a_emb_final = a_emb_final
+        precalc_target_emb = target_emb
+        precalc_anchor_emb = anchor_emb
+
     repeats = args.num_samples // args.batch_size
     for rep in range(repeats):
         latents = torch.randn(args.batch_size, 4, 64, 64).to(pipe.device, dtype=pipe.dtype)
 
         for t_idx, tmpl in enumerate(templates):
-            target_prompt = tmpl.format(args.target)
-            anchor_prompt = tmpl.format(args.anchor)
-            
-            target_token = get_token_id(target_prompt, tokenizer, False)
-            anchor_token = get_token_id(anchor_prompt, tokenizer, False)
-            target_emb = get_textencoding(target_token.input_ids, text_encoder)[0]
-            anchor_emb = get_textencoding(anchor_token.input_ids, text_encoder)[0]
-            
-            tar_last_token_idx = target_token.attention_mask[0].sum().item() - 2
-            anc_last_token_idx = anchor_token.attention_mask[0].sum().item() - 2
-
-            t_emb_final = target_emb.clone()
-            a_emb_final = anchor_emb.clone()
-            
             if args.use_concept_as_prompt:
-                if args.proj_length == 'max_valid':
-                    max_len = max(target_token.attention_mask[0].sum().item(), anchor_token.attention_mask[0].sum().item())
-                    t_feat = target_emb[1:max_len]
-                    a_feat = anchor_emb[1:max_len]
-                else:
-                    t_feat = target_emb[1:]
-                    a_feat = anchor_emb[1:]
+                target_emb = precalc_target_emb
+                anchor_emb = precalc_anchor_emb
+                t_emb_final = precalc_t_emb_final
+                a_emb_final = precalc_a_emb_final
             else:
+                target_prompt = tmpl.format(args.target)
+                anchor_prompt = tmpl.format(args.anchor)
+                
+                target_token = get_token_id(target_prompt, tokenizer, False)
+                anchor_token = get_token_id(anchor_prompt, tokenizer, False)
+                target_emb = get_textencoding(target_token.input_ids, text_encoder)[0]
+                anchor_emb = get_textencoding(anchor_token.input_ids, text_encoder)[0]
+                
+                tar_last_token_idx = target_token.attention_mask[0].sum().item() - 2
+                anc_last_token_idx = anchor_token.attention_mask[0].sum().item() - 2
+
+                t_emb_final = target_emb.clone()
+                a_emb_final = anchor_emb.clone()
+                
                 if args.extract_concept_tokens:
                     prefix = tmpl.split('{}')[0]
                     prefix_toks = get_token_id(prefix, tokenizer, False)
@@ -203,43 +265,31 @@ def main():
                 else:
                     t_feat = target_emb[tar_last_token_idx:tar_last_token_idx+1]
                     a_feat = anchor_emb[anc_last_token_idx:anc_last_token_idx+1]
-                
-            if args.proj_direction == 't2a':
-                # project target to anchor
-                coeff = t_feat.float() @ a_feat.float().T @ torch.linalg.pinv(a_feat.float() @ a_feat.float().T)
-                proj = (coeff @ a_feat.float()).to(t_feat.dtype)
-                
-                if args.gen_mode == 'proj_only':
-                    new_feat = proj
-                else: # add_to_anchor
-                    new_feat = a_feat + proj
                     
-                if args.use_concept_as_prompt:
-                    if args.proj_length == 'max_valid':
-                        t_emb_final[1:max_len] = new_feat
-                    else:
-                        t_emb_final[1:] = new_feat
-                else:
+                if args.proj_direction == 't2a':
+                    # project target to anchor
+                    coeff = t_feat.float() @ a_feat.float().T @ torch.linalg.pinv(a_feat.float() @ a_feat.float().T)
+                    proj = (coeff @ a_feat.float()).to(t_feat.dtype)
+                    
+                    if args.gen_mode == 'proj_only':
+                        new_feat = proj
+                    else: # add_to_anchor
+                        new_feat = a_feat + proj
+                        
                     if args.extract_concept_tokens:
                         t_emb_final[t_start:t_end] = new_feat[:t_feat_raw.shape[0]]
                     else:
                         t_emb_final[tar_last_token_idx:tar_last_token_idx+1] = new_feat
-            else:
-                # project anchor to target
-                coeff = a_feat.float() @ t_feat.float().T @ torch.linalg.pinv(t_feat.float() @ t_feat.float().T)
-                proj = (coeff @ t_feat.float()).to(t_feat.dtype)
-                
-                if args.gen_mode == 'proj_only':
-                    new_feat = proj
-                else: # add_to_anchor
-                    new_feat = a_feat + proj
-
-                if args.use_concept_as_prompt:
-                    if args.proj_length == 'max_valid':
-                        a_emb_final[1:max_len] = new_feat
-                    else:
-                        a_emb_final[1:] = new_feat
                 else:
+                    # project anchor to target
+                    coeff = a_feat.float() @ t_feat.float().T @ torch.linalg.pinv(t_feat.float() @ t_feat.float().T)
+                    proj = (coeff @ t_feat.float()).to(t_feat.dtype)
+                    
+                    if args.gen_mode == 'proj_only':
+                        new_feat = proj
+                    else: # add_to_anchor
+                        new_feat = a_feat + proj
+
                     if args.extract_concept_tokens:
                         a_emb_final[a_start:a_end] = new_feat[:a_feat_raw.shape[0]]
                     else:
@@ -275,6 +325,7 @@ def main():
                     text_embeddings=text_emb_target_original,
                     total_timesteps=args.total_timesteps,
                     guidance_scale=args.guidance_scale,
+                    show_progress=args.show_progress,
                     desc=f'{t_idx} | target original',
                 ),
                 'anchor_original': diffusion(
@@ -284,6 +335,7 @@ def main():
                     text_embeddings=text_emb_anchor_original,
                     total_timesteps=args.total_timesteps,
                     guidance_scale=args.guidance_scale,
+                    show_progress=args.show_progress,
                     desc=f'{t_idx} | anchor original',
                 ),
                 'projected': diffusion(
@@ -293,6 +345,7 @@ def main():
                     text_embeddings=text_emb_projected,
                     total_timesteps=args.total_timesteps,
                     guidance_scale=args.guidance_scale,
+                    show_progress=args.show_progress,
                     desc=f'{t_idx} | projected',
                 ),
             }
