@@ -27,8 +27,8 @@ python erase.py \
     --params V \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --hard_boundary_aug \
-    --boundary_topk 30
+    --low_rank_update \
+    --low_rank_rate 100
 
 
 edit_ckpt=$(cat "${ckpt_meta}")

@@ -25,12 +25,10 @@ python erase.py \
     --retain_path "data/instance.csv" \
     --header "concept" \
     --params V \
-    --aug_num 0 \
-    --disable_filter \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
     --hard_boundary_aug \
-    --boundary_topk 15
+    --boundary_topk 100
 
 
 edit_ckpt=$(cat "${ckpt_meta}")

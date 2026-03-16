@@ -267,10 +267,10 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         
         # retain矩阵也是取平均的方式进行编辑
         sum_ret_ret, valid_num = [], 0
-        print("Enable DPA with aug_num =", args.aug_num)
         for j in range(0, len(layer_ret_embs), chunk_size):
             chunk_ret_embs = layer_ret_embs[j:j + chunk_size]
             if args.aug_num > 0:
+                print("Enable DPA with aug_num =", args.aug_num)
                 chunk_ret_embs = torch.cat(
                     [chunk_ret_embs, generate_perturbed_embs(chunk_ret_embs, P0_min, erase_weight, num_per_sample=args.aug_num)], dim=0
                 )
@@ -284,19 +284,6 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         
         # $$\Delta P = W(C_*C_1^\top - C_1C_1^\top) P (C_1C_1^\top P + I)^{-1}$$
         delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (sum_target_target @ P + I).inverse()
-        
-        if args.low_rank_update:
-            U_delta, S_delta, V_delta = torch.svd(delta_weight)
-            if args.low_rank_rate > 0:
-                print("Using low_rank_rate = {} ".format(args.low_rank_rate))
-                k = int((S_delta > args.low_rank_threshold).sum().item() * args.low_rank_rate)
-            else:
-                print("Using low_rank_k = {} ".format(args.low_rank_k))
-                k = args.low_rank_k
-            k = min(k, len(S_delta))
-
-            delta_weight = U_delta[:, :k] @ torch.diag(S_delta[:k]) @ V_delta[:, :k].T
-        
         edit_dict[layer_name] = layer_weight + delta_weight
 
     print(f"Current model status: Edited {str(target_concepts)} into {str(anchor_concepts)}")
@@ -340,11 +327,6 @@ if __name__ == '__main__':
     # semantic manifold interpolation
     parser.add_argument('--manifold_interp', action='store_true', default=False)
     parser.add_argument('--interp_samples', type=int, default=100)
-    # extremely low-rank update
-    parser.add_argument('--low_rank_update', action='store_true', default=False)
-    parser.add_argument('--low_rank_k', type=int, default=10)
-    parser.add_argument('--low_rank_rate', type=float, default=0.0, help="The rate of how many singular values to keep in the low-rank update. If set to 0, it will be determined by low_rank_k.")
-    parser.add_argument('--low_rank_threshold', default=1e-5, type=float, help="The threshold for singular values when low_rank_update is enabled. Singular values below this threshold will be set to zero.")
     # t2a/a2t
     mutually_excl_group = parser.add_mutually_exclusive_group(required=False)
     mutually_excl_group.add_argument('--t2a', action='store_true', default=False)
