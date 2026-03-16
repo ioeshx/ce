@@ -30,7 +30,8 @@ python erase.py \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
     --hard_boundary_aug \
-    --boundary_gamma 0.3
+    --boundary_topk 30 \
+    --boundary_gamma 0.1
 
 
 edit_ckpt=$(cat "${ckpt_meta}")

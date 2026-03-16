@@ -227,8 +227,11 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                 # Enhance: C0_enhanced = C0 + gamma * (C0 - C1) / ||C0 - C1||
                 diff = C0_hard - C1_global
                 diff_norm = torch.norm(diff, p=2, dim=1, keepdim=True) + 1e-8
-                C0_enhanced = C0_hard + args.boundary_gamma * (diff / diff_norm)
-                
+                # No normalization
+                # C0_enhanced = C0_hard + args.boundary_gamma * (diff / diff_norm)
+                print("No Normalization for boundary enhancement!")
+                C0_enhanced = C0_hard + args.boundary_gamma * (diff)
+
                 last_ret_embs = torch.cat([last_ret_embs, C0_enhanced.unsqueeze(1)], dim=0)
                 print(f"[INFO] Applied Hard-Boundary Augmentation: Added {topk} augmented samples toward boundary. Gamma: {args.boundary_gamma}")
 
