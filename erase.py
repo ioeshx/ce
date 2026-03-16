@@ -153,6 +153,10 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print("cosine sim: target={}, anchor={}".format(torch.cosine_similarity(tar_origin, target_embs), torch.cosine_similarity(anch_origin, anchor_embs)))
         if args.pabs:
             anchor_embs = anchor_final_embes
+            
+        if args.zero_anchor:
+            print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
+            anchor_embs = torch.zeros_like(target_embs)
           
         all_target_embs_list.append(target_embs)
         sum_target_target.append(target_embs.T @ target_embs)
@@ -349,6 +353,8 @@ if __name__ == '__main__':
     # semantic contrastive anchor
     parser.add_argument('--push_away_anchor', action='store_true', default=False)
     parser.add_argument('--push_away_lambda', type=float, default=0.01)
+    # anchor-free zeroing
+    parser.add_argument('--zero_anchor', action='store_true', default=False)
     # extremely low-rank update
     parser.add_argument('--low_rank_update', action='store_true', default=False)
     parser.add_argument('--low_rank_k', type=int, default=10)
