@@ -157,6 +157,10 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         if args.zero_anchor:
             print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
             anchor_embs = torch.zeros_like(target_embs)
+
+        if args.fusion_anchor_target:
+            print(f"Enable Concept Fusion of Anchor and Target with scale {args.fusion_scale}")
+            anchor_embs = args.fusion_scale * target_embs + (1 - args.fusion_scale) * anchor_embs
           
         all_target_embs_list.append(target_embs)
         sum_target_target.append(target_embs.T @ target_embs)
@@ -366,9 +370,12 @@ if __name__ == '__main__':
     mutually_excl_group.add_argument('--a2t', action='store_true', default=False)
     mutually_excl_group.add_argument('--t2a_only', action='store_true', default=False)
     mutually_excl_group.add_argument('--a2t_only', action='store_true', default=False)
-
+    # token
     parser.add_argument('--all_token', action='store_true', default=False)
     parser.add_argument('--max_valid_tokens', action='store_true', default=False, help="")
+    # concept fusion: fusion anchor and target, as new anchor for projection
+    parser.add_argument('--fusion_anchor_target', action='store_true', default=False)
+    parser.add_argument('--fusion_scale', type=float, default=0.1, help="The alpha for fusion of anchor and target when fusion_anchor_target is enabled. The new anchor will be alpha * target + (1-alpha) * anchor.")
 
     args = parser.parse_args()
     print("[Arguments]")
