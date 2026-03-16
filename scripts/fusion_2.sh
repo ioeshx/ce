@@ -28,7 +28,7 @@ python erase.py \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
     --fusion_anchor_target \
-    --fusion_scale 0.2
+    --fusion_scale 0.0001
 
 
 edit_ckpt=$(cat "${ckpt_meta}")

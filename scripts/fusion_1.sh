@@ -28,7 +28,7 @@ python erase.py \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
     --fusion_anchor_target \
-    --fusion_scale 0.05
+    --fusion_scale 0.001
 
 
 edit_ckpt=$(cat "${ckpt_meta}")
@@ -82,7 +82,7 @@ for raw_content in ${contents}; do
 
     echo "[INFO] Benchmarking content: ${content}"
     python "${benchmark_py}" \
-        --metrics fid clip lpips aesthetic \
+        --metrics fid clip lpips \
         --images-root "${image_root}" \
         --fid-ref "${fid_ref}" \
         --prompts-csv "${prompts_csv}" \

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # hd=hard boundary
-# export HF_ENDPOINT=https://hf-mirror.com
+export HF_ENDPOINT=https://hf-mirror.com
 export CUDA_VISIBLE_DEVICES=0
 
 target_concepts="Snoopy, Mickey, Spongebob"
@@ -82,7 +82,7 @@ for raw_content in ${contents}; do
 
     echo "[INFO] Benchmarking content: ${content}"
     python "${benchmark_py}" \
-        --metrics fid clip lpips aesthetic \
+        --metrics fid clip lpips \
         --images-root "${image_root}" \
         --fid-ref "${fid_ref}" \
         --prompts-csv "${prompts_csv}" \
