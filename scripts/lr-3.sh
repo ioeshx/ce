@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # hd=hard boundary
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts="cartoon character"

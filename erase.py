@@ -275,7 +275,8 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                     [chunk_ret_embs, generate_perturbed_embs(chunk_ret_embs, P0_min, erase_weight, num_per_sample=args.aug_num)], dim=0
                 )
             valid_num += chunk_ret_embs.shape[0]
-            sum_ret_ret.append((chunk_ret_embs.transpose(1, 2) @ chunk_ret_embs).sum(0))
+            # sum_ret_ret.append((chunk_ret_embs.transpose(1, 2) @ chunk_ret_embs).sum(0))
+            sum_ret_ret.append(chunk_ret_embs.squeeze(1).T @ chunk_ret_embs.squeeze(1))
         sum_ret_ret = torch.stack(sum_ret_ret, dim=0).sum(0) / valid_num
 
 
