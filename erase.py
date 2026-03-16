@@ -303,16 +303,21 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (sum_target_target @ P + I).inverse()
         
         if args.low_rank_update:
+            delta_weight_origin = delta_weight.clone()
             U_delta, S_delta, V_delta = torch.svd(delta_weight)
             if args.low_rank_rate > 0:
                 print("Using low_rank_rate = {} ".format(args.low_rank_rate))
-                k = int((S_delta > args.low_rank_threshold).sum().item() * args.low_rank_rate)
+                k = int(len(S_delta) * args.low_rank_rate)
             else:
                 print("Using low_rank_k = {} ".format(args.low_rank_k))
                 k = args.low_rank_k
             k = min(k, len(S_delta))
-
+            print("Low-rank update with k =", k)
+            print("Top singular values of delta_weight: ", S_delta[:k].detach().cpu().numpy())
+            print("number of singular values above threshold {}: {}".format(args.low_rank_threshold, (S_delta > args.low_rank_threshold).sum().item()))
             delta_weight = U_delta[:, :k] @ torch.diag(S_delta[:k]) @ V_delta[:, :k].T
+            print("diff between original delta_weight and low-rank delta_weight: ", torch.norm(delta_weight_origin - delta_weight) / torch.norm(delta_weight_origin))
+
         
         edit_dict[layer_name] = layer_weight + delta_weight
 

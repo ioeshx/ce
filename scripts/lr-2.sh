@@ -28,7 +28,7 @@ python erase.py \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
     --low_rank_update \
-    --low_rank_rate 0.75
+    --low_rank_k 2
 
 
 edit_ckpt=$(cat "${ckpt_meta}")
