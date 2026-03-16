@@ -106,6 +106,11 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         else:
             target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
             anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
+        
+        if args.push_away_anchor:
+            print(f"Enable Push-Away Anchor with lambda={args.push_away_lambda}")
+            anchor_embs = anchor_embs + args.push_away_lambda * (anchor_embs - target_embs)
+
         # $$P = C_{anchor}(C_{anchor}^\top C_{anchor})^{-1}C_{anchor}^\top$$
         
         # region [project]
@@ -341,6 +346,9 @@ if __name__ == '__main__':
     # semantic manifold interpolation
     parser.add_argument('--manifold_interp', action='store_true', default=False)
     parser.add_argument('--interp_samples', type=int, default=100)
+    # semantic contrastive anchor
+    parser.add_argument('--push_away_anchor', action='store_true', default=False)
+    parser.add_argument('--push_away_lambda', type=float, default=0.01)
     # extremely low-rank update
     parser.add_argument('--low_rank_update', action='store_true', default=False)
     parser.add_argument('--low_rank_k', type=int, default=10)
