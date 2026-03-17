@@ -61,6 +61,8 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         cluster_ids, cluster_centers = kmeans(X=null_hidden[1:], num_clusters=3, distance='euclidean', device='cuda')
         K2 = torch.cat([null_hidden[[0], :], cluster_centers.to(device)], dim=0).T # shape: [768, 4]
         I2 = torch.eye(len(K2.T), device=device) # shape: [4, 4]
+        print("k2 shape: ", K2.shape)
+        print("I2 shape: ", I2.shape)
     else:
         raise ValueError("Invalid baseline")
 
@@ -303,8 +305,17 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         P = U[:, S < args.threshold] @ U[:, S < args.threshold].T
         
         # $$\Delta P = W(C_*C_1^\top - C_1C_1^\top) P (C_1C_1^\top P + I)^{-1}$$
-        delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (sum_target_target @ P + I).inverse()
         
+        if baseline == 'SPEED':
+            # U, S, V = torch.svd(sum_ret_ret)
+            # P = U[:, S < args.threshold] @ U[:, S < args.threshold].T
+            M = (sum_target_target @ P + args.retain_scale * I).inverse()
+            delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (I - M @ K2 @ (K2.T @ P @ M @ K2 + args.lamb * I2).inverse() @ K2.T @ P) @ M
+        elif baseline == 'my':
+            # 我的实现禁用IPF和DPA，直接使用最基本的投影公式
+            delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (sum_target_target @ P + I).inverse()
+
+
         if args.low_rank_update:
             delta_weight_origin = delta_weight.clone()
             U_delta, S_delta, V_delta = torch.svd(delta_weight)
