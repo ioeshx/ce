@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # hd=hard boundary
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts=""
@@ -31,7 +31,7 @@ python erase.py \
     --ckpt_path_file "${ckpt_meta}" \
     --hard_boundary_aug \
     --boundary_topk 30 \
-    --boundary_gamma 0.2
+    --boundary_gamma 0.01
 
 
 edit_ckpt=$(cat "${ckpt_meta}")
