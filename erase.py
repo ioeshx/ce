@@ -110,6 +110,35 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         if args.push_away_anchor:
             print(f"Enable Push-Away Anchor with lambda={args.push_away_lambda}")
             anchor_embs = anchor_embs + args.push_away_lambda * (anchor_embs - target_embs)
+        if args.svd_common:
+            # 1. 将 target 和 anchor 归一化为单位向量
+            t_norm = torch.nn.functional.normalize(target_embs, p=2, dim=1)
+            a_norm = torch.nn.functional.normalize(anchor_embs, p=2, dim=1)
+            
+            # 2. 构造特征叠加矩阵
+            m_shared = t_norm.T @ t_norm + a_norm.T @ a_norm
+            
+            # 3. 进行 SVD 分解
+            U_shared, S_shared, V_shared = torch.svd(m_shared)
+            print("Singular values of shared matrix (): ", S_shared[:3].detach().cpu().numpy())
+            # print("signular vectors of shared matrix (corresponding to top 3 singular values): ", V_shared[:, :5].detach().cpu().numpy())
+            # 4. 提取第一主成分作为共同特征方向，并恢复到目标的维度 [1, 768]
+            # V_shared 的列对应特征向量方向，取第一列。由于对称半正定，U = V
+            common_direction = V_shared[:, 0].unsqueeze(0)  # shape: [1, 768]
+            
+            # ---- 新增：引入第二右奇异向量作为偏差 ----
+            divergent_direction = V_shared[:, 1].unsqueeze(0)  # shape: [1, 768]
+            
+            # 使用 getattr 获取可能传入的 svd_bias 参数，默认为 0.1
+            if args.svd_bias > 0:
+                print(f"Adding divergent direction with scale {args.svd_bias}")
+                fused_direction = common_direction + args.svd_bias * divergent_direction
+                fused_direction = torch.nn.functional.normalize(fused_direction, p=2, dim=1) # 保证加法后仍为标准的单位方向向量
+                # 5. 按照原 anchor 的能量大小还原模长
+                anchor_embs = fused_direction * torch.norm(anchor_embs, p=2, dim=1, keepdim=True)
+
+            anchor_embs = common_direction * torch.norm(anchor_embs, p=2, dim=1, keepdim=True)
+
 
         # $$P = C_{anchor}(C_{anchor}^\top C_{anchor})^{-1}C_{anchor}^\top$$
         
@@ -388,6 +417,9 @@ if __name__ == '__main__':
     # concept fusion: fusion anchor and target, as new anchor for projection
     parser.add_argument('--fusion_anchor_target', action='store_true', default=False)
     parser.add_argument('--fusion_scale', type=float, default=0.1, help="The alpha for fusion of anchor and target when fusion_anchor_target is enabled. The new anchor will be alpha * target + (1-alpha) * anchor.")
+    # SVD common feature
+    parser.add_argument('--svd_common', action='store_true', default=False, help="Enable SVD common feature extraction for target and anchor. The common feature will be extracted as the singular vector corresponding to the largest singular value of the concatenated target and anchor embeddings.")
+    parser.add_argument('--svd_bias', type=float, default=0.0, help="Scale modifier for adding the second right singular vector (difference feature) to the common anchor.")
 
     args = parser.parse_args()
     print("[Arguments]")
