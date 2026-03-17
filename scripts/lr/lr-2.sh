@@ -4,7 +4,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 export CUDA_VISIBLE_DEVICES=1
 
 target_concepts="Snoopy, Mickey, Spongebob"
-anchor_concepts="cartoon character"
+anchor_concepts=""
 contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
 
 script_name=$(basename "$0" .sh)

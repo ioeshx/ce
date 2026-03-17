@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
-# hd=hard boundary
+
 export HF_ENDPOINT=https://hf-mirror.com
 export CUDA_VISIBLE_DEVICES=0
 
 target_concepts="Snoopy, Mickey, Spongebob"
-anchor_concepts=""
+anchor_concepts="dog,mouse,sponge"
+k=10
+boundary_topk=5
+retian_path="data/instance.csv"
 contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
 
 script_name=$(basename "$0" .sh)
@@ -22,14 +25,13 @@ ckpt_meta=$(mktemp)
 python erase.py \
     --target_concepts "${target_concepts}" \
     --anchor_concepts "${anchor_concepts}" \
-    --retain_path "data/instance.csv" \
+    --retain_path "${retian_path}" \
     --header "concept" \
     --params V \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --low_rank_update \
-    --low_rank_k 3
-
+    --svd_common \
+    --svd_bias 0.3
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"
