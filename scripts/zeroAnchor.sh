@@ -27,7 +27,8 @@ python erase.py \
     --params V \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
-    --zero_anchor
+    --zero_anchor \
+    --max_valid_tokens
 
 
 edit_ckpt=$(cat "${ckpt_meta}")
