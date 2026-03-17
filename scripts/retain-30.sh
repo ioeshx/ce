@@ -4,7 +4,10 @@ export HF_ENDPOINT=https://hf-mirror.com
 export CUDA_VISIBLE_DEVICES=0
 
 target_concepts="Snoopy, Mickey, Spongebob"
-anchor_concepts="cartoon character"
+anchor_concepts=""
+k=30
+boundary_topk=15
+retian_path="data/top${k}_instance.csv"
 contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
 
 script_name=$(basename "$0" .sh)
@@ -22,9 +25,12 @@ ckpt_meta=$(mktemp)
 python erase.py \
     --target_concepts "${target_concepts}" \
     --anchor_concepts "${anchor_concepts}" \
-    --retain_path "data/topk_instance.csv" \
+    --retain_path "${retian_path}" \
     --header "concept" \
     --params V \
+    --disable_filter \
+    --hard_boundary_aug \
+    --boundary_topk ${boundary_topk} \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}"
 

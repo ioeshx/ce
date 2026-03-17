@@ -175,6 +175,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     # retain为空，则使用一个全零输入的文本嵌入作为retain；否则使用retain文本中最后一个subject token的文本嵌入作为retain
     last_ret_embs = []
     retain_texts = [text for text in retain_texts if not any(re.search(r'\b' + re.escape(concept.lower()) + r'\b', text.lower()) for concept in target_concepts)]
+    print("retain texts: ", retain_texts)
     assert len(retain_texts) + len(target_concepts) == len(set(retain_texts + target_concepts))
     for j in range(0, len(retain_texts), chunk_size):
         ret_inputs = get_token_id(retain_texts[j:j + chunk_size], pipeline.tokenizer, return_ids_only=False)
@@ -229,7 +230,9 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                 C0_hard = C0_sq[hard_indices] # [topk, 768]
                 
                 # Enhance: C0_enhanced = C0 + gamma * (C0 - C1) / ||C0 - C1||
-                diff = C0_hard - C1_global
+                # diff = C0_hard - C1_global
+                # 把retain向target靠
+                diff = C1_global - C0_hard 
                 diff_norm = torch.norm(diff, p=2, dim=1, keepdim=True) + 1e-8
                 # No normalization
                 # C0_enhanced = C0_hard + args.boundary_gamma * (diff / diff_norm)
