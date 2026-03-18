@@ -11,7 +11,7 @@ def main():
     parser.add_argument("--input_csv", type=str, default="data/instance.csv", help="Path to input CSV")
     parser.add_argument("--output_csv", type=str, default="data/top{}_instance.csv", help="Path to output CSV")
     parser.add_argument("--targets", type=str, nargs="+", default=["Snoopy", "Mickey", "Spongebob", "Hello Kitty", "Pikachu"], help="Target concepts separated by space (default: Snoopy Mickey Spongebob)")
-    parser.add_argument("--k", type=int, default=70, help="Number of top concepts to save")
+    parser.add_argument("--k", type=int, default=500, help="Number of top concepts to save")
     parser.add_argument("--model", type=str, default="clip-ViT-B-32", help="Sentence-transformer model to use (default: clip-ViT-B-32)")
 
     args = parser.parse_args()

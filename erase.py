@@ -271,6 +271,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                 C0_enhanced = C0_hard + args.boundary_gamma * (diff)
 
                 last_ret_embs = torch.cat([last_ret_embs, C0_enhanced.unsqueeze(1)], dim=0)
+                print("last_ret_embs shape after augmentation: ", last_ret_embs.shape)
                 print(f"[INFO] Applied Hard-Boundary Augmentation: Added {topk} augmented samples toward boundary. Gamma: {args.boundary_gamma}")
 
     # Semantic Manifold Interpolation
@@ -338,10 +339,12 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         if baseline == 'SPEED':
             # U, S, V = torch.svd(sum_ret_ret)
             # P = U[:, S < args.threshold] @ U[:, S < args.threshold].T
+            print("Enable SPEED")
             M = (sum_target_target @ P + args.retain_scale * I).inverse()
             delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (I - M @ K2 @ (K2.T @ P @ M @ K2 + args.lamb * I2).inverse() @ K2.T @ P) @ M
         elif baseline == 'my':
             # 我的实现禁用IPF和DPA，直接使用最基本的投影公式
+            print("Enable My Method")
             delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (sum_target_target @ P + I).inverse()
 
 
@@ -376,6 +379,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_path', type=str, default=None)
     parser.add_argument('--file_name', type=str, default=None)
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--disable_fixed_seed', default=False, action='store_true')
     parser.add_argument('--ckpt_path_file', type=str, default=None)
     # Erase Config
     parser.add_argument('--target_concepts', type=str, required=True)
@@ -439,7 +443,10 @@ if __name__ == '__main__':
     
 
     device = torch.device("cuda")
-    seed_everything(args.seed)
+    if args.disable_fixed_seed:
+        print("====Warning: Fixed seed is disabled.====")
+    else:
+        seed_everything(args.seed)
 
     target_concepts = [con.strip() for con in args.target_concepts.split(',')]
     anchor_concepts = args.anchor_concepts

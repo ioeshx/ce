@@ -1,0 +1,301 @@
+id,concept,similarity_score
+27,Mickey,0.84677935
+15,Hello Kitty,0.83328915
+34,SpongeBob,0.82533884
+1353,Snoopy,0.8142508
+103,Minnie Mouse,0.80950624
+29,Pikachu,0.8054749
+650,Legend,0.80108565
+26,Minions ,0.8007879
+595,Psychological,0.7995492
+1223,Anime,0.799054
+1071,Animal ,0.7982992
+1329,Animal,0.7982992
+683,Joke,0.7968856
+1182,Sound,0.7958752
+942,Clown,0.7949961
+1225,Sanrio,0.79493
+131,Goofy,0.7945463
+1062,Number One ,0.79452634
+164,T.O.T.S.,0.7932173
+599,Alex ,0.79077137
+1347,Death ,0.78976077
+594,Character ,0.78864896
+250,Evil,0.78728825
+1257,Disney Princess,0.7872871
+956,Supervillain,0.7867734
+24,Mario,0.7866476
+1340,Andrea ,0.7858263
+123,Charlie Brown,0.7851917
+977,Allusion,0.78506213
+1267,Mouse,0.78486454
+237,Donkey ,0.78442705
+762,Shu ,0.7842573
+1134,Roger ,0.7838892
+74,Animation,0.7834375
+248,Play ,0.7833871
+663,Michael ,0.7830473
+412,M ,0.7829487
+47,Donald Duck,0.78277904
+247,Crime,0.7827401
+1003,Toy,0.78246343
+827,Not safe for work,0.7824173
+856,Miffy,0.7816656
+284,Comics,0.78137064
+1000,Doll,0.7812421
+739,Holiday,0.7811687
+249,Novel,0.7811307
+1054,The Master ,0.78091896
+648,Hero,0.78078234
+931,Scientist,0.78009015
+746,Personification,0.7796382
+1174,Porky Pig,0.77939874
+245,Villain,0.7791298
+1173,Kuiil,0.77896774
+1038,Music,0.7788677
+672,Popular culture,0.77877194
+617,Actor,0.77861434
+983,Poetry,0.77836615
+43,Food,0.7783392
+319,Comic book,0.7783036
+697,Fairy tale,0.77791595
+1179,Technology,0.777326
+760,Nut ,0.7772867
+1351,Anthropomorphic,0.7772685
+737,United States,0.7771176
+246,Stock character,0.77704734
+870,Literature,0.77700436
+806,Doge ,0.7768049
+1339,Alpha ,0.7766529
+1201,Acting,0.77641296
+874,Chani ,0.7763301
+56,Eddie ,0.7763244
+824,Nerd,0.7762235
+335,Spider-Man,0.77619714
+1313,Beta ,0.7761348
+825,New media,0.7760375
+819,Leet,0.7759452
+1248,Fiction,0.7758951
+367,Anna ,0.7756011
+243,Cartoon,0.775502
+671,Religion,0.7753116
+1216,Jessie ,0.77519214
+985,Soliloquy,0.7751398
+1245,My Little Pony,0.7749728
+118,Baloo,0.77491957
+712,Gamer,0.7749154
+780,Internet,0.7747897
+68,A.E.I.O.U.,0.7745365
+1158,Ghoul ,0.7743671
+809,Emoji,0.77416813
+1045,Sleeper hit,0.77415735
+653,David,0.7739702
+633,Folklore,0.77353585
+690,Common sense,0.77349997
+955,Straight man,0.77300155
+627,Special effect,0.77295244
+628,Soundtrack,0.7728175
+322,Soldier Boy,0.77214664
+811,Fake news,0.7717233
+822,Men Going Their Own Way,0.77136755
+1220,Woody ,0.7708631
+1259,Anthropomorphism,0.77075225
+831,Nonfiction,0.7707065
+38,Easter egg,0.77048874
+340,Twin,0.7704836
+944,Evil clown,0.77041906
+667,Samson,0.770218
+1181,Video,0.76982605
+814,Geek,0.76964366
+495,Tonto,0.76943654
+980,Introduction ,0.76915497
+1180,Broadcasting,0.76909244
+528,Ariel ,0.7690855
+707,Storytelling,0.76893693
+1244,Mattel,0.76861715
+9,Advertising,0.7684165
+1144,Lucifer ,0.7681862
+283,Black people,0.76813394
+1232,Autobot,0.7680232
+937,Antihero,0.76801604
+749,Apep,0.76727885
+979,Film adaptation,0.7672578
+773,0.999...,0.7672143
+20,Bugs Bunny,0.7668396
+1214,Midge ,0.76681006
+1212,Performance art,0.76678574
+2,Easter Bunny,0.7665973
+706,Social norm,0.766116
+318,Superhero,0.7660426
+895,Big Brother ,0.7659063
+209,Joker ,0.7657931
+986,Western canon,0.7654259
+1210,Method acting,0.7654077
+363,Media franchise,0.7653929
+1324,Comic strip,0.76536405
+815,Imageboard,0.7650074
+943,Everyman,0.7649907
+1040,Extended play,0.76465786
+109,Storm ,0.76457405
+636,Bogeyman,0.76408595
+741,Legendary creature,0.7640545
+358,Marvel Comics,0.7640534
+1221,Hasbro,0.7638686
+702,Parable,0.7637552
+1067,Ruby ,0.7636521
+846,Trickster,0.76333606
+239,Shrek ,0.76322746
+83,Popeye,0.7632056
+60,Mass media,0.7631837
+146,Rocket ,0.76316875
+978,Epilogue,0.76299417
+936,Renfield,0.7629588
+840,Mary Sue,0.7627047
+330,Invincible ,0.76236105
+794,Anonymous ,0.7620751
+1240,Happy Meal,0.7619917
+19,Bozo the Clown,0.761951
+361,Webcomic,0.76187325
+649,Mythology,0.76153624
+1333,Isis ,0.76146096
+655,Esther,0.7611663
+42,Playboy Bunny,0.76114666
+1001,Human,0.76107675
+222,Tom Cat,0.7610079
+151,New Looney Tunes,0.761006
+1263,Scar ,0.7606159
+116,Baby Huey,0.7605554
+1039,Album era,0.76048195
+754,Hemera,0.7603744
+720,Father Christmas,0.7600301
+32,Sonic the Hedgehog ,0.75999564
+473,Mickey Haller,0.75938594
+679,Santa Claus,0.75926256
+938,Archenemy,0.75922245
+1314,The Governor ,0.7590761
+625,Filmmaking,0.7590325
+700,Here be dragons,0.7589332
+314,Orphan,0.7585952
+143,Mr. Magoo,0.75844634
+67,A minor,0.7583302
+262,Lucky Luke,0.75818145
+1211,Mimesis,0.7581312
+292,Static ,0.7580623
+1043,Music download,0.75795114
+1271,Mr. Burns,0.7578534
+688,Backronym,0.7576875
+828,Online chat,0.75767887
+568,Extraterrestrial life,0.75762594
+25,Ronald McDonald,0.75754493
+1242,Lego,0.75753754
+654,Elijah,0.75743824
+297,Captain America,0.75735295
+634,Europe,0.75728124
+759,Mammon,0.75703603
+204,Herbert ,0.7568138
+734,Saint Patrick,0.7567974
+1046,Television series,0.75674945
+80,King Kong,0.75674284
+961,Adolescence,0.75667375
+1297,Princess Peach,0.7562745
+389,Emmanuelle,0.7561182
+1150,Sylvie ,0.75600994
+761,Ra,0.7555719
+1207,Pantomime,0.75543654
+982,Perverse incentive,0.7553495
+695,Evil eye,0.7552508
+735,National personification,0.7551683
+997,Puppetry,0.7550494
+76,Daffy Duck,0.75489306
+418,Ali Mills ,0.7546902
+946,Girl next door,0.75454485
+491,Piglet ,0.75442415
+515,The Shadow,0.7542778
+795,ASMR,0.7542057
+1070,Television,0.7537864
+64,Fear of missing out,0.753596
+1159,Hatim ,0.7535036
+1098,Grogu,0.7533795
+721,Frosty the Snowman,0.75336736
+66,Social media marketing,0.75336534
+359,DC Comics,0.7532807
+405,Lady Jessica,0.7532038
+670,Vashti,0.75295913
+155,The Walt Disney Company,0.7529209
+436,James Bond ,0.7526618
+1170,Companion ,0.7525672
+360,Newspaper,0.752322
+137,Jerry Mouse,0.7522642
+11,Felix the Cat,0.75203335
+147,Link ,0.75192106
+758,Maat,0.75191545
+609,Romeo,0.75189817
+996,Sesame Street,0.75185287
+1044,Muzak,0.7518069
+153,Screen Gems,0.75173795
+1320,Ancient One,0.75163186
+1186,Lothario,0.7515982
+799,Chat room,0.75138044
+621,Film crew,0.7513611
+59,Mascot,0.751258
+10,Automobile,0.75123703
+558,Harry Potter ,0.7511148
+999,Puppet,0.7510241
+1063,Miss Piggy,0.7510022
+419,MJ ,0.7507998
+753,Geb,0.75079596
+301,Sailor Moon ,0.7505947
+709,Vernacular,0.7502703
+1261,Donkey Kong ,0.7499445
+632,Night hag,0.7498652
+95,Daisy Duck,0.74964654
+981,Literary genre,0.74964356
+801,Copypasta,0.7496432
+960,Zombie,0.7495636
+1110,Greef Karga,0.74947405
+161,Pinky and the Brain,0.74927104
+1178,Telecommunication,0.74925023
+1241,Hot Wheels,0.7492324
+1323,Scrooge McDuck,0.74922645
+547,Elmo,0.7492018
+334,Snow White ,0.74920005
+645,Snow White,0.74920005
+755,Inside Out ,0.74919134
+1277,Manga,0.7491851
+540,Angel Salvadore,0.7491571
+1151,Thirteen ,0.7488678
+133,Grinch,0.7488564
+647,The Ugly Duckling,0.7487629
+57,Public service announcement,0.74875635
+635,Big Bad Wolf,0.7485796
+1002,Humanoid,0.74855393
+681,Saint Valentine,0.74854517
+793,Alpha and beta male,0.748526
+751,Chronos,0.7482702
+1208,Break a leg,0.7482392
+442,Chef ,0.748112
+1202,Opera,0.74775153
+821,Manosphere,0.74772584
+691,Cooties,0.7475821
+1254,Song of the South,0.74741495
+1209,Casting ,0.7473629
+696,Fable,0.7472456
+984,Proverb,0.7469198
+953,Paladin,0.74691963
+834,Don Juan,0.7469181
+687,Apotropaic magic,0.74688596
+782,Doomer,0.74681777
+212,Krusty the Clown,0.74669063
+569,Predator ,0.7465678
+41,Nancy Green,0.74653924
+182,Batman ,0.7464825
+826,Nightcore,0.7464772
+550,Jamie Lloyd,0.74643755
+65,Guerrilla marketing,0.746256
+128,Geppetto,0.7461857
+178,Yogi Bear,0.7460704
+747,Aether ,0.7458965
+958,Tokenism,0.7457811
+941,Caveman,0.7457441
+1007,Voodoo doll,0.7456752
+740,Christmas Eve,0.7456192
