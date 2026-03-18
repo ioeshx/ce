@@ -95,19 +95,32 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
         if target_concepts[i] == 'nudity':
             target_embs = target_embs[1:, :]  # all tokens
+        if args.max_valid_tokens:
+            print("Using max valid tokens for target.")
+            target_embs = target_embs[0:(target_inputs.attention_mask[0].sum().item() - 1), :]  # all subject tokens [num_valid_tokens, 768]
         else:
             print("Using last subject token for target.")
             target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
 
         for j in range(0, len(imagenet_templates)):
+            if args.target_prompt_last_token:
+                target_prompt = imagenet_templates[j].format(target_concepts[i])
+                t_inputs = get_token_id(target_prompt, pipeline.tokenizer, return_ids_only=False)
+                target_embs = pipeline.text_encoder(t_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+                target_embs = target_embs[[(t_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
+
             anchor_prompt = imagenet_templates[j].format(anchor_concepts[i])
             anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
             anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
             if target_concepts == ['nudity']:
                 anchor_embs = anchor_embs[1:, :]  # all tokens
+            if args.max_valid_tokens:
+                anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 2), :].mean(dim=0, keepdim=True)
+                anchor_embs = anchor_embs.repeat(target_embs.size(0), 1)  # repeat to match target_embs shape for later calculations
             else:
                 # print("Using last subject token for target and average of subject tokens for anchor.")
                 anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 2), :].mean(dim=0, keepdim=True)  # average of all subject tokens [1,768]
+                    
             all_target_embs_list.append(target_embs)
             sum_target_target.append(target_embs.T @ target_embs)
             sum_anchor_target.append(anchor_embs.T @ target_embs)

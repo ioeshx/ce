@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts=""
@@ -27,6 +27,7 @@ python erase_prompt.py \
     --params V \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
+    --max_valid_tokens
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"

@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts=""
+k=10
+boundary_topk=5
 retian_path="data/instance.csv"
 contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
 
@@ -19,12 +21,12 @@ prompts_csv='/path/to/prompts.csv'
 
 ckpt_meta=$(mktemp)
 
-python erase_prompt.py \
+python erase.py \
     --target_concepts "${target_concepts}" \
     --anchor_concepts "${anchor_concepts}" \
     --retain_path "${retian_path}" \
     --header "concept" \
-    --params V \
+    --params K \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
 
