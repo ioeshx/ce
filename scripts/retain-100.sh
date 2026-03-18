@@ -28,7 +28,6 @@ python erase.py \
     --retain_path "${retian_path}" \
     --header "concept" \
     --params V \
-    --disable_filter \
     --hard_boundary_aug \
     --boundary_topk ${boundary_topk} \
     --boundary_gamma 0.5 \

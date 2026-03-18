@@ -292,8 +292,6 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
 
     # 在后面也做了平均，所以retain的处理方式和target/anchor是一致的，都是取文本嵌入的平均作为最终的retain矩阵；如果retain文本为空，则使用全零输入的文本嵌入（同样取平均）作为retain矩阵
     # endregion
-    
-    ret_ret_embs = last_ret_embs.squeeze(1).T @ last_ret_embs.squeeze(1)
 
     if args.aug_num > 0 and not args.disable_filter:
         print("Enable IPF and DPA")
@@ -334,8 +332,6 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         U, S, V = torch.svd(sum_ret_ret)
         P = U[:, S < args.threshold] @ U[:, S < args.threshold].T
         
-        # $$\Delta P = W(C_*C_1^\top - C_1C_1^\top) P (C_1C_1^\top P + I)^{-1}$$
-        
         if baseline == 'SPEED':
             # U, S, V = torch.svd(sum_ret_ret)
             # P = U[:, S < args.threshold] @ U[:, S < args.threshold].T
@@ -344,6 +340,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (I - M @ K2 @ (K2.T @ P @ M @ K2 + args.lamb * I2).inverse() @ K2.T @ P) @ M
         elif baseline == 'my':
             # 我的实现禁用IPF和DPA，直接使用最基本的投影公式
+            # $$\Delta P = W(C_*C_1^\top - C_1C_1^\top) P (C_1C_1^\top P + I)^{-1}$$
             print("Enable My Method")
             delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (sum_target_target @ P + I).inverse()
 
