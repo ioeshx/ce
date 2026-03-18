@@ -29,7 +29,7 @@ python erase.py \
     --header "concept" \
     --params V \
     --hard_boundary_aug \
-    --boundary_gamma 0.5 \
+    --boundary_gamma 0.1 \
     --boundary_topk ${boundary_topk} \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}"

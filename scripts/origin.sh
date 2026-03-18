@@ -5,9 +5,9 @@ export CUDA_VISIBLE_DEVICES=0
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts=""
-k=100
-boundary_topk=10
-retian_path="data/top${k}_instance.csv"
+k=10
+boundary_topk=5
+retian_path="data/instance.csv"
 contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
 
 script_name=$(basename "$0" .sh)
@@ -21,22 +21,17 @@ prompts_csv='/path/to/prompts.csv'
 
 ckpt_meta=$(mktemp)
 
-
 python erase.py \
     --target_concepts "${target_concepts}" \
     --anchor_concepts "${anchor_concepts}" \
     --retain_path "${retian_path}" \
     --header "concept" \
     --params V \
-    --hard_boundary_aug \
-    --boundary_topk ${boundary_topk} \
-    --boundary_gamma 0.5 \
     --save_path ${save_path} \
-    --ckpt_path_file "${ckpt_meta}"
+    --ckpt_path_file "${ckpt_meta}" \
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"
-
 
 python sample.py \
     --erase_type 'instance' \
@@ -46,7 +41,6 @@ python sample.py \
     --mode 'original, edit' \
     --num_samples 10 --batch_size 10 \
     --save_root ${sample_save_root}
-
 
 trim_spaces() {
     s="$1"

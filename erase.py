@@ -261,9 +261,9 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                 C0_hard = C0_sq[hard_indices] # [topk, 768]
                 
                 # Enhance: C0_enhanced = C0 + gamma * (C0 - C1) / ||C0 - C1||
-                # diff = C0_hard - C1_global
+                # diff = C1_global - C0_hard 
                 # 把retain向target靠
-                diff = C1_global - C0_hard 
+                diff = C0_hard - C1_global
                 diff_norm = torch.norm(diff, p=2, dim=1, keepdim=True) + 1e-8
                 # No normalization
                 # C0_enhanced = C0_hard + args.boundary_gamma * (diff / diff_norm)
