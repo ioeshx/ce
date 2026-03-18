@@ -89,7 +89,8 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
 
     sum_anchor_target, sum_target_target = [], []
     all_target_embs_list = []
-    from util.template import imagenet_templates
+    from util.template import imagenet_templates, imagenet_templates_extend
+
     for i in range(0, len(target_concepts)):
         target_inputs = get_token_id(target_concepts[i], pipeline.tokenizer, return_ids_only=False)
         target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
@@ -102,14 +103,15 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print("Using last subject token for target.")
             target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
 
-        for j in range(0, len(imagenet_templates)):
-            if args.target_prompt_last_token:
-                target_prompt = imagenet_templates[j].format(target_concepts[i])
-                t_inputs = get_token_id(target_prompt, pipeline.tokenizer, return_ids_only=False)
-                target_embs = pipeline.text_encoder(t_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
-                target_embs = target_embs[[(t_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
+        current_template = imagenet_templates_extend if args.anchor_using_extend  else imagenet_templates
+        for j in range(0, len(current_template)):
+            # if args.target_prompt_last_token:
+            #     target_prompt = imagenet_templates[j].format(target_concepts[i])
+            #     t_inputs = get_token_id(target_prompt, pipeline.tokenizer, return_ids_only=False)
+            #     target_embs = pipeline.text_encoder(t_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+            #     target_embs = target_embs[[(t_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
 
-            anchor_prompt = imagenet_templates[j].format(anchor_concepts[i])
+            anchor_prompt = current_template[j].format(anchor_concepts[i])
             anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
             anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
             if target_concepts == ['nudity']:
@@ -360,6 +362,9 @@ if __name__ == '__main__':
     # SVD common feature
     parser.add_argument('--svd_common', action='store_true', default=False, help="Enable SVD common feature extraction for target and anchor. The common feature will be extracted as the singular vector corresponding to the largest singular value of the concatenated target and anchor embeddings.")
     parser.add_argument('--svd_bias', type=float, default=0.0, help="Scale modifier for adding the second right singular vector (difference feature) to the common anchor.")
+    # target map to rest of prompt
+    parser.add_argument("--target_prompt_last_token_asTarget", action='store_true', default=False, help="Whether to use the last subject token of the target prompt as the target embedding. If False, it will use the average of all subject tokens as the target embedding. Note that for nudity, it will always use all tokens regardless of this setting.")
+    parser.add_argument('--anchor_using_extend', action='store_true', default=False, help="Whether to use the extended set of templates for anchor embedding extraction. If False, it will use the original set of templates. This mainly affects the choice of anchor prompts and thus the anchor embeddings.")
 
     args = parser.parse_args()
     print("[Arguments]")
