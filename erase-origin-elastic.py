@@ -178,6 +178,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             # $$\Delta P = W(C_*C_1^\top - C_1C_1^\top) P (C_1C_1^\top P + I)^{-1}$$
             print("Enable My Method")
             delta_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ P @ (sum_target_target @ P + I).inverse()
+        
         edit_dict[layer_name] = layer_weight + delta_weight
 
     print(f"Current model status: Edited {str(target_concepts)} into {str(anchor_concepts)}")
@@ -206,7 +207,7 @@ if __name__ == '__main__':
     parser.add_argument('--retain_scale', type=float, default=1.0) # not used, acts as lambda_1
     parser.add_argument('--lamb', type=float, default=0.0)  # not used
     parser.add_argument('--disable_filter', action='store_true', default=False)
-    parser.add_argument('--lambda_2', type=float, default=1.0) # 【新增】弹性超参 lambda_2
+    parser.add_argument('--lambda_2', type=float, default=10.0) # 【新增】弹性超参 lambda_2
 
     # token_length
     parser.add_argument('--all_token', action='store_true', default=False)
