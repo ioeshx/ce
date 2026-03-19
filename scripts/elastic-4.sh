@@ -30,7 +30,7 @@ python erase-origin-elastic.py \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
     --elastic_calibration \
-    --lambda_2 300.0 \
+    --lambda_2 400.0 \
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"

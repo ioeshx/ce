@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts=""
@@ -30,7 +30,7 @@ python erase-origin-elastic.py \
     --save_path ${save_path} \
     --ckpt_path_file "${ckpt_meta}" \
     --elastic_calibration \
-    --lambda_2 300.0 \
+    --lambda_2 250.0 \
 
 edit_ckpt=$(cat "${ckpt_meta}")
 rm -f "${ckpt_meta}"
