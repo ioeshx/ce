@@ -94,6 +94,19 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     for i in range(0, len(target_concepts)):
         target_inputs = get_token_id(target_concepts[i], pipeline.tokenizer, return_ids_only=False)
         target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+        
+        # _tid = target_inputs.input_ids[0, (target_inputs.attention_mask[0].sum().item() - 2)].item()  # 获取第一个subject token的Token ID
+        # _tstr = pipeline.tokenizer.convert_ids_to_tokens(_tid)  # 获取对应的Token字符串
+        # print(f"Target Concept: '{target_concepts[i]}', last Subject Token ID: {_tid}, Subject Token String: '{_tstr}'")
+
+        # 提取当前概念下所有的非padding token并打印其对应的 Token ID 和 Token 字符
+        # valid_len = target_inputs.attention_mask[0].sum().item()
+        # print(f"[{target_concepts[i]}] All Valid Tokens:")
+        # for _idx in range(valid_len):
+        #     _tid = target_inputs.input_ids[0, _idx].item()
+        #     _tstr = pipeline.tokenizer.convert_ids_to_tokens(_tid)
+        #     print(f"  Index {_idx} -> Token ID: {_tid}, Token: '{_tstr}'")
+
         if target_concepts[i] == 'nudity':
             target_embs = target_embs[1:, :]  # all tokens
         if args.max_valid_tokens:
@@ -136,7 +149,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     # retain为空，则使用一个全零输入的文本嵌入作为retain；否则使用retain文本中最后一个subject token的文本嵌入作为retain
     last_ret_embs = []
     retain_texts = [text for text in retain_texts if not any(re.search(r'\b' + re.escape(concept.lower()) + r'\b', text.lower()) for concept in target_concepts)]
-    print("retain texts: ", retain_texts)
+    # print("retain texts: ", retain_texts)
     assert len(retain_texts) + len(target_concepts) == len(set(retain_texts + target_concepts))
     for j in range(0, len(retain_texts), chunk_size):
         ret_inputs = get_token_id(retain_texts[j:j + chunk_size], pipeline.tokenizer, return_ids_only=False)
