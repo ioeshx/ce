@@ -1,5 +1,5 @@
 import os, sys, re, pdb
-# os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 import argparse
 import torch
 import torch_fidelity
