@@ -16,7 +16,7 @@ class Generate_Dataset(Dataset):
         super().__init__()
         root_path = os.path.join(path, content, sub_root)
         self.content = content
-        self.images = [os.path.join(root_path, name) for name in os.listdir(root_path)]
+        self.images = [os.path.join(root_path, name) for name in os.listdir(root_path) if name.endswith(('jpg', 'jpeg', 'png'))]
         if content == 'coco':
             df = pd.read_csv("data/mscoco.csv")
             self.texts = [df.loc[df['image_id'].isin([int(os.path.basename(x).replace('COCO_val2014_', '').split('.')[0])]), 'text'].tolist()[0] for x in self.images]
@@ -80,28 +80,26 @@ if __name__ == '__main__':
     CS_calculator = CLIP_Score()
 
     for root_path in root_paths:
-        try:
-            save_txt = os.path.join(root_path, 'record_metrics.txt')
-            if not os.path.exists(save_txt): 
-                with open(save_txt, 'a') as f:
-                    f.writelines('*************************** \n')
-                    f.writelines(f'Calculating the metrics for {root_path} \n')
+        save_txt = os.path.join(root_path, 'record_metrics.txt')
+        if not os.path.exists(save_txt): 
+            with open(save_txt, 'a') as f:
+                f.writelines('*************************** \n')
+                f.writelines(f'Calculating the metrics for {root_path} \n')
 
-            with open(save_txt, 'r') as f:  
-                txt_content = f.read()
-            for content in tqdm(contents):
-                if content + ':' in txt_content: continue
-                dataset = Generate_Dataset(root_path, content, args.sub_root)
-                dataloader = DataLoader(dataset, batch_size=10)
-                CS = CS_calculator(dataloader)
-                FIDELITY = torch_fidelity.calculate_metrics(
-                    input1=os.path.join(root_path, content, args.sub_root), 
-                    input2=os.path.join(args.pretrained_path, content, 'original') if content != 'coco' else "data/pretrain/coco/coco/original", 
-                    cuda=True, 
-                    fid=True, 
-                    verbose=False,
-                )
-                with open(save_txt, 'a') as f:
-                    f.writelines(f"{content}: CS is {CS * 100}, FID is {FIDELITY['frechet_inception_distance']} \n")
-        except Exception as e:
-            pass
+        with open(save_txt, 'r') as f:  
+            txt_content = f.read()
+        for content in tqdm(contents):
+            if content + ':' in txt_content: continue
+            dataset = Generate_Dataset(root_path, content, args.sub_root)
+            dataloader = DataLoader(dataset, batch_size=10)
+            CS = CS_calculator(dataloader)
+            FIDELITY = torch_fidelity.calculate_metrics(
+                input1=os.path.join(root_path, content, args.sub_root), 
+                input2=os.path.join(args.pretrained_path, content, 'original') if content != 'coco' else "data/pretrain/coco/coco/original", 
+                cuda=True, 
+                fid=True, 
+                verbose=False,
+            )
+            print(f"{content}:\n FID is {FIDELITY['frechet_inception_distance']}, CS is {CS * 100}")
+            with open(save_txt, 'a') as f:
+                f.writelines(f"{content}:\n FID is {FIDELITY['frechet_inception_distance']}, CS is {CS * 100} \n")
