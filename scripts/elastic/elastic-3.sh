@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts=""
@@ -17,7 +17,7 @@ sample_save_root="result/${script_name}_${anchor_slug}"
 
 benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 # Keep these as needed for your local benchmark assets.
-prompts_csv='/path/to/prompts.csv'
+# prompts_csv='/path/to/prompts.csv'
 
 # ckpt_meta=$(mktemp)
 
@@ -30,7 +30,7 @@ prompts_csv='/path/to/prompts.csv'
 #     --save_path ${save_path} \
 #     --ckpt_path_file "${ckpt_meta}" \
 #     --elastic_calibration \
-#     --lambda_2 250.0 \
+#     --lambda_2 300.0 \
 
 # edit_ckpt=$(cat "${ckpt_meta}")
 # rm -f "${ckpt_meta}"
@@ -81,7 +81,7 @@ for raw_content in ${contents}; do
 
     echo "[INFO] Benchmarking content: ${content}"
     python "${benchmark_py}" \
-        --metrics fid clip lpips aesthetic \
+        --metrics clip \
         --images-root "${image_root}" \
         --fid-ref "${fid_ref}" \
         --prompts-csv "${prompts_csv}" \
