@@ -19,7 +19,7 @@ from util.utils import *
 def diffusion(unet, scheduler, latents, text_embeddings, total_timesteps, start_timesteps=0, guidance_scale=7.5, desc=None, **kwargs,):
 
     scheduler.set_timesteps(total_timesteps)
-    for timestep in tqdm(scheduler.timesteps[start_timesteps: total_timesteps], desc=desc):
+    for timestep in tqdm(scheduler.timesteps[start_timesteps: total_timesteps], desc=desc, disable=True):
 
         latent_model_input = torch.cat([latents] * 2)
         latent_model_input = scheduler.scale_model_input(latent_model_input, timestep)
@@ -58,6 +58,7 @@ def main():
     parser.add_argument('--num_samples', type=int, default=10, help='The number of samples per prompt to generate' )
     parser.add_argument('--batch_size', type=int, default=10, help='The batch size of the sampling process')
     parser.add_argument('--prompts', type=str, default=None)
+    parser.add_argument('--coco_max_num', type=int, default=1000, help='The max number of coco samples to generate')
     # Erasing Config
     parser.add_argument('--erase_type', type=str, default='', help='instance, style, celebrity')
     parser.add_argument('--target_concept', type=str, default='')
@@ -83,7 +84,7 @@ def main():
     if args.contents == 'nudity':
         dataset = AdaDataset(data_path='data/i2p_benchmark.csv')
     elif args.contents == 'coco':
-        dataset = AdaDataset(data_path ='data/mscoco.csv', seed=args.seed, guidance_scale=args.guidance_scale, max_num=1000)
+        dataset = AdaDataset(data_path ='data/mscoco.csv', seed=args.seed, guidance_scale=args.guidance_scale, max_num=args.coco_max_num)
     elif 'erase' in args.contents or 'retain' in args.contents:
         dataset = AdaDataset(data_path =f'data/{args.erase_type}.csv', guidance_scale=args.guidance_scale)
     dataloader = DataLoader(dataset, batch_size=bs, drop_last=False)
@@ -94,20 +95,22 @@ def main():
                 continue
 
             save_images = {}
-            latent = torch.randn((bs, 4, 64, 64), generator=torch.Generator('cpu').manual_seed(data['seed'][0].item())).to(pipe.device, dtype=pipe.dtype)
+
+            curr_bs = len(data['prompt'])
+            latent = torch.randn((curr_bs, 4, 64, 64), generator=torch.Generator('cpu').manual_seed(data['seed'][0].item())).to(pipe.device, dtype=pipe.dtype)
             embedding = get_textencoding(get_token(data['prompt'], tokenizer), text_encoder)
 
             if 'original' in mode_list:
                 save_images['original'] = diffusion(unet=unet, scheduler=pipe.scheduler, 
                                                 latents=latent, start_timesteps=0, 
-                                                text_embeddings=torch.cat([uncond_embedding] * bs + [embedding], dim=0), 
+                                                text_embeddings=torch.cat([uncond_embedding] * curr_bs + [embedding], dim=0), 
                                                 total_timesteps=args.total_timesteps, 
                                                 guidance_scale=args.guidance_scale, 
                                                 desc=f"{count * len(data['prompt'])} x prompts | original")
             if 'edit' in mode_list:
                 save_images['edit'] = diffusion(unet=unet_edit, scheduler=pipe.scheduler,
                                             latents=latent, start_timesteps=0, 
-                                            text_embeddings=torch.cat([uncond_embedding] * bs + [embedding], dim=0), 
+                                            text_embeddings=torch.cat([uncond_embedding] * curr_bs + [embedding], dim=0), 
                                             total_timesteps=args.total_timesteps, 
                                             guidance_scale=args.guidance_scale, 
                                             desc=f"{count * len(data['prompt'])} x prompts | edit")

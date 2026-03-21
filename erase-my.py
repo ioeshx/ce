@@ -11,7 +11,7 @@ from diffusers import StableDiffusionPipeline
 import random
 
 from util.utils import str2bool
-
+from util.template import imagenet_templates, imagenet_templates_extend
 
 def seed_everything(seed, deterministic=False):
     random.seed(seed)
@@ -69,7 +69,6 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     # region [Target and Anchor]
     # nudity 使用所有token，其他概念使用last subject token
     # 擦除多个概念时，取它们的平均作为最终的擦除目标；如果是单个概念，则直接使用该概念的文本嵌入作为擦除目标
-
     sum_anchor_target, sum_target_target = [], []
     all_target_embs_list = []
     all_anchor_embs_list = [] # 【新增】专门记录 anchor
@@ -81,10 +80,30 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         if target_concepts == ['nudity']:
             target_embs = target_embs[1:, :]  # all tokens
             anchor_embs = anchor_embs[1:, :]  # all tokens
+        elif args.target_all_tokens:
+            print("Using all tokens for target.")
+            target_embs = target_embs[0:(target_inputs.attention_mask[0].sum().item() - 1), :]  # all subject tokens [num_valid_tokens, 768]
         else:
+            print("Using last subject token for target and anchor.")
             target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
-            anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
         
+        anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
+        
+        if args.mapping2context:
+            print("Mapping to prompt context.")
+            current_template = imagenet_templates_extend if args.anchor_using_extend  else imagenet_templates
+            for j in range(0, len(current_template)):
+                anchor_prompt = current_template[j].format(anchor_concepts[i])
+                anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
+                anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+                if target_concepts == ['nudity']:
+                    anchor_embs = anchor_embs[1:, :]  # all tokens
+                if args.target_all_tokens:
+                    anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 2), :].mean(dim=0, keepdim=True)
+                    anchor_embs = anchor_embs.repeat(target_embs.size(0), 1)  # repeat to match target_embs shape for later calculations
+                else:
+                    anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 2), :].mean(dim=0, keepdim=True)  # average of all subject tokens [1,768]
+
         all_target_embs_list.append(target_embs)
         all_anchor_embs_list.append(anchor_embs) # 【新增】
         sum_target_target.append(target_embs.T @ target_embs)
@@ -124,7 +143,6 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     for (layer_name, layer_weight) in tqdm(edit_dict.items(), desc="Model Editing"):
 
         erase_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ (I + sum_target_target).inverse()        
-
         (U0, S0, V0) = torch.svd(layer_weight)
         P0_min = V0[:, -1:] @ V0[:, -1:].T
         # INFLUENCE-BASED PRIOR FILTERING
@@ -168,7 +186,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                 K_IEC = torch.norm(res_term, p='fro')**2 + args.retain_scale * torch.norm(delta_SPEED, p='fro')**2
                 
                 # 3. 智能离合：计算弹性系数，并回乘获得最终的 Delta_weight
-                alpha_star = args.lambda_2 / (K_IEC + args.lambda_2)
+                alpha_star = args.elastic_scale / (K_IEC + args.elastic_scale)
                 delta_weight = alpha_star * delta_SPEED
                 
                 # 打印监测日志（观察每次更新被拉高了多少阻力）
@@ -207,14 +225,16 @@ if __name__ == '__main__':
     parser.add_argument('--retain_scale', type=float, default=1.0) # not used, acts as lambda_1
     parser.add_argument('--lamb', type=float, default=0.0)  # not used
     parser.add_argument('--disable_filter', action='store_true', default=False)
-    parser.add_argument('--lambda_2', type=float, default=10.0) # 【新增】弹性超参 lambda_2
 
-    # token_length
-    parser.add_argument('--all_token', action='store_true', default=False)
-    parser.add_argument('--max_valid_tokens', action='store_true', default=False, help="")
+    # target token length
+    parser.add_argument('--target_all_tokens', action='store_true', default=False, help="using all tokens for target concept(s) instead of just the last subject token")
     # elastic
-    parser.add_argument('--elastic_calibration', action='store_true', default=False, help="Whether to enable Elastic Calibration in SPEED")
-
+    parser.add_argument('--elastic_calibration', action='store_true', default=False, help="Whether to enable Elastic Calibration")
+    parser.add_argument('--elastic_scale', type=float, default=10.0) # 【新增】弹性超参 elastic_scale
+    # mapping to context
+    parser.add_argument('--mapping2context', action='store_true', default=False, help="Whether to map the anchor concept to prompt context")
+    parser.add_argument('--anchor_using_extend', action='store_true', default=False)
+    
     args = parser.parse_args()
     print("[Arguments]")
     for key, value in vars(args).items():
