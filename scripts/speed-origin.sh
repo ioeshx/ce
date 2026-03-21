@@ -5,8 +5,6 @@ export CUDA_VISIBLE_DEVICES=0
 
 target_concepts="Snoopy, Mickey, Spongebob"
 anchor_concepts=""
-k=10
-boundary_topk=5
 retian_path="data/instance.csv"
 contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
 
@@ -41,6 +39,16 @@ python sample.py \
     --mode 'original, edit' \
     --num_samples 10 --batch_size 10 \
     --save_root ${sample_save_root}
+
+echo "[INFO] Running sample2.py for coco 1k..."
+python sample2.py \
+    --target_concept "${target_concepts}" \
+    --contents "coco" \
+    --edit_ckpt "${edit_ckpt}" \
+    --mode 'original, edit' \
+    --batch_size 16 \
+    --save_root ${sample_save_root}
+    # --coco_max_num 100
 
 trim_spaces() {
     s="$1"
@@ -90,3 +98,29 @@ for raw_content in ${contents}; do
 done
     set +f
     IFS="$old_ifs"
+
+
+echo "[INFO] Benchmarking coco 1k from sample2.py..."
+coco_content="coco"
+image_root="${images_root_candidate}/${coco_content}/edit"
+fid_ref="${images_root_candidate}/${coco_content}/original"
+lpips_original="${images_root_candidate}/${coco_content}/original"
+lpips_edited="${images_root_candidate}/${coco_content}/edit"
+output_json="${images_root_candidate}/${coco_content}/summary.json"
+
+if [ ! -d "${lpips_original}" ] || [ ! -d "${lpips_edited}" ]; then
+    echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
+else
+    echo "[INFO] Benchmarking content: ${coco_content}"
+    python "${benchmark_py}" \
+        --metrics lpips aesthetic \
+        --images-root "${image_root}" \
+        --lpips-original "${lpips_original}" \
+        --lpips-edited "${lpips_edited}" \
+        --output-json "${output_json}"
+
+    python util/clip_score_cal.py \
+        --contents "coco" \
+        --root_path "${images_root_candidate}/" \
+        --pretrained_path "${images_root_candidate}/"
+fi

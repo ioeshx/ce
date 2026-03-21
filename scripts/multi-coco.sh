@@ -1,9 +1,10 @@
 #!/usr/bin/env sh
+# 擦除来自CIFAR100的大量（50，75，1000）概念，然后用coco测试生成效果
 
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 trim_spaces() {
     s="$1"
@@ -15,39 +16,32 @@ coco_csv="data/mscoco.csv"
 benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 prompts_csv='/path/to/prompts.csv'
 
+# target_concepts="imagenet100"
+# anchor_concepts=""
+# erase_type="instance"
+# retain_path="data/instance.csv"
+# contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
+# type="instance"
 
-##### instance #####
-for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" "bed" "smartphone" "apple" "car" "book"; do
-    # target_concepts="Snoopy, Mickey, Spongebob"
-    # anchor_concepts=""
-    # retain_path="data/instance.csv"
-    # contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
-    if [ "$target_concepts" = "Snoopy, Mickey, Spongebob" ]; then
-        anchor_concepts=""
-        erase_type="instance"
-        retain_path="data/instance.csv"
-        contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
-    elif [ "$target_concepts" = "bed" ] || [ "$target_concepts" = "smartphone" ] || [ "$target_concepts" = "apple" ] || [ "$target_concepts" = "car" ] || [ "$target_concepts" = "book" ]; then
-        anchor_concepts=""
-        erase_type="object"
-        retain_path="data/object.csv"
-        contents="bed, smartphone, apple, car, book"
-    else
-        anchor_concepts="art"
-        erase_type="style"
-        retain_path="data/style.csv"
-        contents="Van Gogh, Picasso, Monet, Paul Gauguin, Caravaggio"
-    fi
-    
-    echo "=======[${erase_type}]========"
+
+##### multi #####
+for target_concepts in "CIFAR50" "CIFAR75" "CIFAR100"; do
+
+    anchor_concepts=""
+    erase_type="instance"
+    retain_path="data/instance.csv"
+    contents="coco"
+    type="instance"
+
+    echo "=======[${type}]========"
     echo "Target Concepts: ${target_concepts}"
     echo "Anchor Concepts: ${anchor_concepts}"
     echo "Contents: ${contents}"
 
     script_name=$(basename "$0" .sh)
     anchor_slug=$(printf '%s' "$anchor_concepts" | tr ' ' '_')
-    save_path="ckpt/${script_name}_${erase_type}"
-    sample_save_root="result/${script_name}_${erase_type}"
+    save_path="ckpt/${script_name}_${type}"
+    sample_save_root="result/${script_name}_${type}"
 
     ckpt_meta=$(mktemp)
 
@@ -59,8 +53,6 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" 
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --elastic_calibration \
-        --elastic_scale 150.0 \
         --mapping2context \
         --anchor_using_extend
 
@@ -77,19 +69,9 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" 
         --save_root ${sample_save_root}
         # --coco_max_num 100
 
-    echo "[INFO] Running sample.py for instance..."
-    python sample.py \
-        --erase_type "${erase_type}" \
-        --target_concept "${target_concepts}" \
-        --contents "${contents}" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'original, edit' \
-        --num_samples 10 --batch_size 10 \
-        --save_root ${sample_save_root}
 
-
-    # Expected structure:
-    #   ${sample_save_root}/${target_group}/${content}/{original,edit}
+    # Expected structure
+    #   ${sample_save_root}/${target_group}/${content}/[original,edit]
     target_group=$(echo "${target_concepts}" | sed 's/, /_/g; s/,/_/g; s/ /_/g')
     images_root_candidate="${sample_save_root}/${target_group}"
 
@@ -98,42 +80,6 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" 
         echo "[WARN] Falling back to images root: ${sample_save_root}"
         images_root_candidate="${sample_save_root}"
     fi
-
-    old_ifs="$IFS"
-    IFS=','
-    set -f
-    for raw_content in ${contents}; do
-        content=$(trim_spaces "${raw_content}")
-        image_root="${images_root_candidate}/${content}/edit"
-        fid_ref="${images_root_candidate}/${content}/original"
-        lpips_original="${images_root_candidate}/${content}/original"
-        lpips_edited="${images_root_candidate}/${content}/edit"
-        output_json="${images_root_candidate}/${content}/summary.json"
-
-        if [ ! -d "${lpips_original}" ] || [ ! -d "${lpips_edited}" ]; then
-            echo "[WARN] Skip ${content}: missing ${lpips_original} or ${lpips_edited}"
-            continue
-        fi
-
-        echo "[INFO] Benchmarking content: ${content}"
-        python "${benchmark_py}" \
-            --metrics lpips aesthetic \
-            --images-root "${image_root}" \
-            --fid-ref "${fid_ref}" \
-            --prompts-csv "${prompts_csv}" \
-            --lpips-original "${lpips_original}" \
-            --lpips-edited "${lpips_edited}" \
-            --output-json "${output_json}" \
-            --prompt_from_filename
-            # --metrics fid clip lpips aesthetic \
-        python util/clip_score_cal.py \
-            --contents "${content}" \
-            --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/"
-    done
-        set +f
-        IFS="$old_ifs"
-
 
     echo "[INFO] Benchmarking coco 1k from sample2.py..."
     coco_content="coco"
@@ -153,6 +99,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" 
             --lpips-original "${lpips_original}" \
             --lpips-edited "${lpips_edited}" \
             --output-json "${output_json}"
+
         python util/clip_score_cal.py \
             --contents "coco" \
             --root_path "${images_root_candidate}/" \

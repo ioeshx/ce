@@ -11,7 +11,7 @@ from diffusers import StableDiffusionPipeline
 import random
 
 from util.utils import str2bool
-from util.template import imagenet_templates, imagenet_templates_extend, imagenet_classes
+from util.template import imagenet_templates, imagenet_templates_extend, imagenet_classes, CIFAR100_classes
 
 
 def seed_everything(seed, deterministic=False):
@@ -247,10 +247,10 @@ if __name__ == '__main__':
     else:
         seed_everything(args.seed)
     
-    if "imagenet" in args.target_concepts:
-        print("Using ImageNet classes as target concepts.")
-        num_classes = int(args.target_concepts.replace("imagenet", ""))
-        target_concepts = imagenet_classes[:num_classes]
+    if "CIFAR" in args.target_concepts:
+        print("Using CIFAR-100 classes as target concepts.")
+        num_classes = int(args.target_concepts.replace("CIFAR", ""))
+        target_concepts = CIFAR100_classes[:num_classes]
     else:
         target_concepts = [con.strip() for con in args.target_concepts.split(',')]
     anchor_concepts = args.anchor_concepts

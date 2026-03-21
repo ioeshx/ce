@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 trim_spaces() {
     s="$1"
@@ -15,9 +15,8 @@ coco_csv="data/mscoco.csv"
 benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 prompts_csv='/path/to/prompts.csv'
 
-
 ##### instance #####
-for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" "bed" "smartphone" "apple" "car" "book"; do
+for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -27,27 +26,24 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" 
         erase_type="instance"
         retain_path="data/instance.csv"
         contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
-    elif [ "$target_concepts" = "bed" ] || [ "$target_concepts" = "smartphone" ] || [ "$target_concepts" = "apple" ] || [ "$target_concepts" = "car" ] || [ "$target_concepts" = "book" ]; then
-        anchor_concepts=""
-        erase_type="object"
-        retain_path="data/object.csv"
-        contents="bed, smartphone, apple, car, book"
+        type="instance"
     else
         anchor_concepts="art"
         erase_type="style"
         retain_path="data/style.csv"
         contents="Van Gogh, Picasso, Monet, Paul Gauguin, Caravaggio"
+        type="style"
     fi
     
-    echo "=======[${erase_type}]========"
+    echo "=======[${type}]========"
     echo "Target Concepts: ${target_concepts}"
     echo "Anchor Concepts: ${anchor_concepts}"
     echo "Contents: ${contents}"
 
     script_name=$(basename "$0" .sh)
     anchor_slug=$(printf '%s' "$anchor_concepts" | tr ' ' '_')
-    save_path="ckpt/${script_name}_${erase_type}"
-    sample_save_root="result/${script_name}_${erase_type}"
+    save_path="ckpt/${script_name}_${type}"
+    sample_save_root="result/${script_name}_${type}"
 
     ckpt_meta=$(mktemp)
 
@@ -59,8 +55,6 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" 
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --elastic_calibration \
-        --elastic_scale 150.0 \
         --mapping2context \
         --anchor_using_extend
 
@@ -79,7 +73,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" 
 
     echo "[INFO] Running sample.py for instance..."
     python sample.py \
-        --erase_type "${erase_type}" \
+        --erase_type 'instance' \
         --target_concept "${target_concepts}" \
         --contents "${contents}" \
         --edit_ckpt "${edit_ckpt}" \
@@ -153,6 +147,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet" 
             --lpips-original "${lpips_original}" \
             --lpips-edited "${lpips_edited}" \
             --output-json "${output_json}"
+
         python util/clip_score_cal.py \
             --contents "coco" \
             --root_path "${images_root_candidate}/" \

@@ -1,0 +1,1001 @@
+id,class
+1,tench
+2,goldfish
+3,great white shark
+4,tiger shark
+5,hammerhead shark
+6,electric ray
+7,stingray
+8,rooster
+9,hen
+10,ostrich
+11,brambling
+12,goldfinch
+13,house finch
+14,junco
+15,indigo bunting
+16,American robin
+17,bulbul
+18,jay
+19,magpie
+20,chickadee
+21,American dipper
+22,kite (bird of prey)
+23,bald eagle
+24,vulture
+25,great grey owl
+26,fire salamander
+27,smooth newt
+28,newt
+29,spotted salamander
+30,axolotl
+31,American bullfrog
+32,tree frog
+33,tailed frog
+34,loggerhead sea turtle
+35,leatherback sea turtle
+36,mud turtle
+37,terrapin
+38,box turtle
+39,banded gecko
+40,green iguana
+41,Carolina anole
+42,desert grassland whiptail lizard
+43,agama
+44,frilled-necked lizard
+45,alligator lizard
+46,Gila monster
+47,European green lizard
+48,chameleon
+49,Komodo dragon
+50,Nile crocodile
+51,American alligator
+52,triceratops
+53,worm snake
+54,ring-necked snake
+55,eastern hog-nosed snake
+56,smooth green snake
+57,kingsnake
+58,garter snake
+59,water snake
+60,vine snake
+61,night snake
+62,boa constrictor
+63,African rock python
+64,Indian cobra
+65,green mamba
+66,sea snake
+67,Saharan horned viper
+68,eastern diamondback rattlesnake
+69,sidewinder rattlesnake
+70,trilobite
+71,harvestman
+72,scorpion
+73,yellow garden spider
+74,barn spider
+75,European garden spider
+76,southern black widow
+77,tarantula
+78,wolf spider
+79,tick
+80,centipede
+81,black grouse
+82,ptarmigan
+83,ruffed grouse
+84,prairie grouse
+85,peafowl
+86,quail
+87,partridge
+88,african grey parrot
+89,macaw
+90,sulphur-crested cockatoo
+91,lorikeet
+92,coucal
+93,bee eater
+94,hornbill
+95,hummingbird
+96,jacamar
+97,toucan
+98,duck
+99,red-breasted merganser
+100,goose
+101,black swan
+102,tusker
+103,echidna
+104,platypus
+105,wallaby
+106,koala
+107,wombat
+108,jellyfish
+109,sea anemone
+110,brain coral
+111,flatworm
+112,nematode
+113,conch
+114,snail
+115,slug
+116,sea slug
+117,chiton
+118,chambered nautilus
+119,Dungeness crab
+120,rock crab
+121,fiddler crab
+122,red king crab
+123,American lobster
+124,spiny lobster
+125,crayfish
+126,hermit crab
+127,isopod
+128,white stork
+129,black stork
+130,spoonbill
+131,flamingo
+132,little blue heron
+133,great egret
+134,bittern bird
+135,crane bird
+136,limpkin
+137,common gallinule
+138,American coot
+139,bustard
+140,ruddy turnstone
+141,dunlin
+142,common redshank
+143,dowitcher
+144,oystercatcher
+145,pelican
+146,king penguin
+147,albatross
+148,grey whale
+149,killer whale
+150,dugong
+151,sea lion
+152,Chihuahua
+153,Japanese Chin
+154,Maltese
+155,Pekingese
+156,Shih Tzu
+157,King Charles Spaniel
+158,Papillon
+159,toy terrier
+160,Rhodesian Ridgeback
+161,Afghan Hound
+162,Basset Hound
+163,Beagle
+164,Bloodhound
+165,Bluetick Coonhound
+166,Black and Tan Coonhound
+167,Treeing Walker Coonhound
+168,English foxhound
+169,Redbone Coonhound
+170,borzoi
+171,Irish Wolfhound
+172,Italian Greyhound
+173,Whippet
+174,Ibizan Hound
+175,Norwegian Elkhound
+176,Otterhound
+177,Saluki
+178,Scottish Deerhound
+179,Weimaraner
+180,Staffordshire Bull Terrier
+181,American Staffordshire Terrier
+182,Bedlington Terrier
+183,Border Terrier
+184,Kerry Blue Terrier
+185,Irish Terrier
+186,Norfolk Terrier
+187,Norwich Terrier
+188,Yorkshire Terrier
+189,Wire Fox Terrier
+190,Lakeland Terrier
+191,Sealyham Terrier
+192,Airedale Terrier
+193,Cairn Terrier
+194,Australian Terrier
+195,Dandie Dinmont Terrier
+196,Boston Terrier
+197,Miniature Schnauzer
+198,Giant Schnauzer
+199,Standard Schnauzer
+200,Scottish Terrier
+201,Tibetan Terrier
+202,Australian Silky Terrier
+203,Soft-coated Wheaten Terrier
+204,West Highland White Terrier
+205,Lhasa Apso
+206,Flat-Coated Retriever
+207,Curly-coated Retriever
+208,Golden Retriever
+209,Labrador Retriever
+210,Chesapeake Bay Retriever
+211,German Shorthaired Pointer
+212,Vizsla
+213,English Setter
+214,Irish Setter
+215,Gordon Setter
+216,Brittany dog
+217,Clumber Spaniel
+218,English Springer Spaniel
+219,Welsh Springer Spaniel
+220,Cocker Spaniel
+221,Sussex Spaniel
+222,Irish Water Spaniel
+223,Kuvasz
+224,Schipperke
+225,Groenendael dog
+226,Malinois
+227,Briard
+228,Australian Kelpie
+229,Komondor
+230,Old English Sheepdog
+231,Shetland Sheepdog
+232,collie
+233,Border Collie
+234,Bouvier des Flandres dog
+235,Rottweiler
+236,German Shepherd Dog
+237,Dobermann
+238,Miniature Pinscher
+239,Greater Swiss Mountain Dog
+240,Bernese Mountain Dog
+241,Appenzeller Sennenhund
+242,Entlebucher Sennenhund
+243,Boxer
+244,Bullmastiff
+245,Tibetan Mastiff
+246,French Bulldog
+247,Great Dane
+248,St. Bernard
+249,husky
+250,Alaskan Malamute
+251,Siberian Husky
+252,Dalmatian
+253,Affenpinscher
+254,Basenji
+255,pug
+256,Leonberger
+257,Newfoundland dog
+258,Great Pyrenees dog
+259,Samoyed
+260,Pomeranian
+261,Chow Chow
+262,Keeshond
+263,brussels griffon
+264,Pembroke Welsh Corgi
+265,Cardigan Welsh Corgi
+266,Toy Poodle
+267,Miniature Poodle
+268,Standard Poodle
+269,Mexican hairless dog (xoloitzcuintli)
+270,grey wolf
+271,Alaskan tundra wolf
+272,red wolf or maned wolf
+273,coyote
+274,dingo
+275,dhole
+276,African wild dog
+277,hyena
+278,red fox
+279,kit fox
+280,Arctic fox
+281,grey fox
+282,tabby cat
+283,tiger cat
+284,Persian cat
+285,Siamese cat
+286,Egyptian Mau
+287,cougar
+288,lynx
+289,leopard
+290,snow leopard
+291,jaguar
+292,lion
+293,tiger
+294,cheetah
+295,brown bear
+296,American black bear
+297,polar bear
+298,sloth bear
+299,mongoose
+300,meerkat
+301,tiger beetle
+302,ladybug
+303,ground beetle
+304,longhorn beetle
+305,leaf beetle
+306,dung beetle
+307,rhinoceros beetle
+308,weevil
+309,fly
+310,bee
+311,ant
+312,grasshopper
+313,cricket insect
+314,stick insect
+315,cockroach
+316,praying mantis
+317,cicada
+318,leafhopper
+319,lacewing
+320,dragonfly
+321,damselfly
+322,red admiral butterfly
+323,ringlet butterfly
+324,monarch butterfly
+325,small white butterfly
+326,sulphur butterfly
+327,gossamer-winged butterfly
+328,starfish
+329,sea urchin
+330,sea cucumber
+331,cottontail rabbit
+332,hare
+333,Angora rabbit
+334,hamster
+335,porcupine
+336,fox squirrel
+337,marmot
+338,beaver
+339,guinea pig
+340,common sorrel horse
+341,zebra
+342,pig
+343,wild boar
+344,warthog
+345,hippopotamus
+346,ox
+347,water buffalo
+348,bison
+349,ram (adult male sheep)
+350,bighorn sheep
+351,Alpine ibex
+352,hartebeest
+353,impala (antelope)
+354,gazelle
+355,arabian camel
+356,llama
+357,weasel
+358,mink
+359,European polecat
+360,black-footed ferret
+361,otter
+362,skunk
+363,badger
+364,armadillo
+365,three-toed sloth
+366,orangutan
+367,gorilla
+368,chimpanzee
+369,gibbon
+370,siamang
+371,guenon
+372,patas monkey
+373,baboon
+374,macaque
+375,langur
+376,black-and-white colobus
+377,proboscis monkey
+378,marmoset
+379,white-headed capuchin
+380,howler monkey
+381,titi monkey
+382,Geoffroy's spider monkey
+383,common squirrel monkey
+384,ring-tailed lemur
+385,indri
+386,Asian elephant
+387,African bush elephant
+388,red panda
+389,giant panda
+390,snoek fish
+391,eel
+392,silver salmon
+393,rock beauty fish
+394,clownfish
+395,sturgeon
+396,gar fish
+397,lionfish
+398,pufferfish
+399,abacus
+400,abaya
+401,academic gown
+402,accordion
+403,acoustic guitar
+404,aircraft carrier
+405,airliner
+406,airship
+407,altar
+408,ambulance
+409,amphibious vehicle
+410,analog clock
+411,apiary
+412,apron
+413,trash can
+414,assault rifle
+415,backpack
+416,bakery
+417,balance beam
+418,balloon
+419,ballpoint pen
+420,Band-Aid
+421,banjo
+422,baluster / handrail
+423,barbell
+424,barber chair
+425,barbershop
+426,barn
+427,barometer
+428,barrel
+429,wheelbarrow
+430,baseball
+431,basketball
+432,bassinet
+433,bassoon
+434,swimming cap
+435,bath towel
+436,bathtub
+437,station wagon
+438,lighthouse
+439,beaker
+440,military hat (bearskin or shako)
+441,beer bottle
+442,beer glass
+443,bell tower
+444,baby bib
+445,tandem bicycle
+446,bikini
+447,ring binder
+448,binoculars
+449,birdhouse
+450,boathouse
+451,bobsleigh
+452,bolo tie
+453,poke bonnet
+454,bookcase
+455,bookstore
+456,bottle cap
+457,hunting bow
+458,bow tie
+459,brass memorial plaque
+460,bra
+461,breakwater
+462,breastplate
+463,broom
+464,bucket
+465,buckle
+466,bulletproof vest
+467,high-speed train
+468,butcher shop
+469,taxicab
+470,cauldron
+471,candle
+472,cannon
+473,canoe
+474,can opener
+475,cardigan
+476,car mirror
+477,carousel
+478,tool kit
+479,cardboard box / carton
+480,car wheel
+481,automated teller machine
+482,cassette
+483,cassette player
+484,castle
+485,catamaran
+486,CD player
+487,cello
+488,mobile phone
+489,chain
+490,chain-link fence
+491,chain mail
+492,chainsaw
+493,storage chest
+494,chiffonier
+495,bell or wind chime
+496,china cabinet
+497,Christmas stocking
+498,church
+499,movie theater
+500,cleaver
+501,cliff dwelling
+502,cloak
+503,clogs
+504,cocktail shaker
+505,coffee mug
+506,coffeemaker
+507,spiral or coil
+508,combination lock
+509,computer keyboard
+510,candy store
+511,container ship
+512,convertible
+513,corkscrew
+514,cornet
+515,cowboy boot
+516,cowboy hat
+517,cradle
+518,construction crane
+519,crash helmet
+520,crate
+521,infant bed
+522,Crock Pot
+523,croquet ball
+524,crutch
+525,cuirass
+526,dam
+527,desk
+528,desktop computer
+529,rotary dial telephone
+530,diaper
+531,digital clock
+532,digital watch
+533,dining table
+534,dishcloth
+535,dishwasher
+536,disc brake
+537,dock
+538,dog sled
+539,dome
+540,doormat
+541,drilling rig
+542,drum
+543,drumstick
+544,dumbbell
+545,Dutch oven
+546,electric fan
+547,electric guitar
+548,electric locomotive
+549,entertainment center
+550,envelope
+551,espresso machine
+552,face powder
+553,feather boa
+554,filing cabinet
+555,fireboat
+556,fire truck
+557,fire screen
+558,flagpole
+559,flute
+560,folding chair
+561,football helmet
+562,forklift
+563,fountain
+564,fountain pen
+565,four-poster bed
+566,freight car
+567,French horn
+568,frying pan
+569,fur coat
+570,garbage truck
+571,gas mask or respirator
+572,gas pump
+573,goblet
+574,go-kart
+575,golf ball
+576,golf cart
+577,gondola
+578,gong
+579,gown
+580,grand piano
+581,greenhouse
+582,radiator grille
+583,grocery store
+584,guillotine
+585,hair clip
+586,hair spray
+587,half-track
+588,hammer
+589,hamper
+590,hair dryer
+591,hand-held computer
+592,handkerchief
+593,hard disk drive
+594,harmonica
+595,harp
+596,combine harvester
+597,hatchet
+598,holster
+599,home theater
+600,honeycomb
+601,hook
+602,hoop skirt
+603,gymnastic horizontal bar
+604,horse-drawn vehicle
+605,hourglass
+606,iPod
+607,clothes iron
+608,carved pumpkin
+609,jeans
+610,jeep
+611,T-shirt
+612,jigsaw puzzle
+613,rickshaw
+614,joystick
+615,kimono
+616,knee pad
+617,knot
+618,lab coat
+619,ladle
+620,lampshade
+621,laptop computer
+622,lawn mower
+623,lens cap
+624,letter opener
+625,library
+626,lifeboat
+627,lighter
+628,limousine
+629,ocean liner
+630,lipstick
+631,slip-on shoe
+632,lotion
+633,music speaker
+634,loupe magnifying glass
+635,sawmill
+636,magnetic compass
+637,messenger bag
+638,mailbox
+639,tights
+640,one-piece bathing suit
+641,manhole cover
+642,maraca
+643,marimba
+644,mask
+645,matchstick
+646,maypole
+647,maze
+648,measuring cup
+649,medicine cabinet
+650,megalith
+651,microphone
+652,microwave oven
+653,military uniform
+654,milk can
+655,minibus
+656,miniskirt
+657,minivan
+658,missile
+659,mitten
+660,mixing bowl
+661,mobile home
+662,ford model t
+663,modem
+664,monastery
+665,monitor
+666,moped
+667,mortar and pestle
+668,graduation cap
+669,mosque
+670,mosquito net
+671,vespa
+672,mountain bike
+673,tent
+674,computer mouse
+675,mousetrap
+676,moving van
+677,muzzle
+678,metal nail
+679,neck brace
+680,necklace
+681,baby pacifier
+682,notebook computer
+683,obelisk
+684,oboe
+685,ocarina
+686,odometer
+687,oil filter
+688,pipe organ
+689,oscilloscope
+690,overskirt
+691,bullock cart
+692,oxygen mask
+693,product packet / packaging
+694,paddle
+695,paddle wheel
+696,padlock
+697,paintbrush
+698,pajamas
+699,palace
+700,pan flute
+701,paper towel
+702,parachute
+703,parallel bars
+704,park bench
+705,parking meter
+706,railroad car
+707,patio
+708,payphone
+709,pedestal
+710,pencil case
+711,pencil sharpener
+712,perfume
+713,Petri dish
+714,photocopier
+715,plectrum
+716,Pickelhaube
+717,picket fence
+718,pickup truck
+719,pier
+720,piggy bank
+721,pill bottle
+722,pillow
+723,ping-pong ball
+724,pinwheel
+725,pirate ship
+726,drink pitcher
+727,block plane
+728,planetarium
+729,plastic bag
+730,plate rack
+731,farm plow
+732,plunger
+733,Polaroid camera
+734,pole
+735,police van
+736,poncho
+737,pool table
+738,soda bottle
+739,plant pot
+740,potter's wheel
+741,power drill
+742,prayer rug
+743,printer
+744,prison
+745,missile
+746,projector
+747,hockey puck
+748,punching bag
+749,purse
+750,quill
+751,quilt
+752,race car
+753,racket
+754,radiator
+755,radio
+756,radio telescope
+757,rain barrel
+758,recreational vehicle
+759,fishing casting reel
+760,reflex camera
+761,refrigerator
+762,remote control
+763,restaurant
+764,revolver
+765,rifle
+766,rocking chair
+767,rotisserie
+768,eraser
+769,rugby ball
+770,ruler measuring stick
+771,sneaker
+772,safe
+773,safety pin
+774,salt shaker
+775,sandal
+776,sarong
+777,saxophone
+778,scabbard
+779,weighing scale
+780,school bus
+781,schooner
+782,scoreboard
+783,CRT monitor
+784,screw
+785,screwdriver
+786,seat belt
+787,sewing machine
+788,shield
+789,shoe store
+790,shoji screen / room divider
+791,shopping basket
+792,shopping cart
+793,shovel
+794,shower cap
+795,shower curtain
+796,ski
+797,balaclava ski mask
+798,sleeping bag
+799,slide rule
+800,sliding door
+801,slot machine
+802,snorkel
+803,snowmobile
+804,snowplow
+805,soap dispenser
+806,soccer ball
+807,sock
+808,solar thermal collector
+809,sombrero
+810,soup bowl
+811,keyboard space bar
+812,space heater
+813,space shuttle
+814,spatula
+815,motorboat
+816,spider web
+817,spindle
+818,sports car
+819,spotlight
+820,stage
+821,steam locomotive
+822,through arch bridge
+823,steel drum
+824,stethoscope
+825,scarf
+826,stone wall
+827,stopwatch
+828,stove
+829,strainer
+830,tram
+831,stretcher
+832,couch
+833,stupa
+834,submarine
+835,suit
+836,sundial
+837,sunglasses
+838,sunglasses
+839,sunscreen
+840,suspension bridge
+841,mop
+842,sweatshirt
+843,swim trunks / shorts
+844,swing
+845,electrical switch
+846,syringe
+847,table lamp
+848,tank
+849,tape player
+850,teapot
+851,teddy bear
+852,television
+853,tennis ball
+854,thatched roof
+855,front curtain
+856,thimble
+857,threshing machine
+858,throne
+859,tile roof
+860,toaster
+861,tobacco shop
+862,toilet seat
+863,torch
+864,totem pole
+865,tow truck
+866,toy store
+867,tractor
+868,semi-trailer truck
+869,tray
+870,trench coat
+871,tricycle
+872,trimaran
+873,tripod
+874,triumphal arch
+875,trolleybus
+876,trombone
+877,hot tub
+878,turnstile
+879,typewriter keyboard
+880,umbrella
+881,unicycle
+882,upright piano
+883,vacuum cleaner
+884,vase
+885,vaulted or arched ceiling
+886,velvet fabric
+887,vending machine
+888,vestment
+889,viaduct
+890,violin
+891,volleyball
+892,waffle iron
+893,wall clock
+894,wallet
+895,wardrobe
+896,military aircraft
+897,sink
+898,washing machine
+899,water bottle
+900,water jug
+901,water tower
+902,whiskey jug
+903,whistle
+904,hair wig
+905,window screen
+906,window shade
+907,Windsor tie
+908,wine bottle
+909,airplane wing
+910,wok
+911,wooden spoon
+912,wool
+913,split-rail fence
+914,shipwreck
+915,sailboat
+916,yurt
+917,website
+918,comic book
+919,crossword
+920,traffic or street sign
+921,traffic light
+922,dust jacket
+923,menu
+924,plate
+925,guacamole
+926,consomme
+927,hot pot
+928,trifle
+929,ice cream
+930,popsicle
+931,baguette
+932,bagel
+933,pretzel
+934,cheeseburger
+935,hot dog
+936,mashed potatoes
+937,cabbage
+938,broccoli
+939,cauliflower
+940,zucchini
+941,spaghetti squash
+942,acorn squash
+943,butternut squash
+944,cucumber
+945,artichoke
+946,bell pepper
+947,cardoon
+948,mushroom
+949,Granny Smith apple
+950,strawberry
+951,orange
+952,lemon
+953,fig
+954,pineapple
+955,banana
+956,jackfruit
+957,cherimoya (custard apple)
+958,pomegranate
+959,hay
+960,carbonara
+961,chocolate syrup
+962,dough
+963,meatloaf
+964,pizza
+965,pot pie
+966,burrito
+967,red wine
+968,espresso
+969,tea cup
+970,eggnog
+971,mountain
+972,bubble
+973,cliff
+974,coral reef
+975,geyser
+976,lakeshore
+977,promontory
+978,sandbar
+979,beach
+980,valley
+981,volcano
+982,baseball player
+983,bridegroom
+984,scuba diver
+985,rapeseed
+986,daisy
+987,yellow lady's slipper
+988,corn
+989,acorn
+990,rose hip
+991,horse chestnut seed
+992,coral fungus
+993,agaric
+994,gyromitra
+995,stinkhorn mushroom
+996,earth star fungus
+997,hen of the woods mushroom
+998,bolete
+999,corn cob
+1000,toilet paper
