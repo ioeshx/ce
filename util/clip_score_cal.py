@@ -23,8 +23,8 @@ class Generate_Dataset(Dataset):
         else:
             # '_' to ' '
             self.texts = [(' ').join(x.split('/')[-1].split('_')[:-1]) for x in self.images]
-        print(self.images[:5])
-        print(self.texts[:5])
+        print(self.images[:1])
+        print(self.texts[:1])
     
     def __len__(self,):
         return len(self.images)
@@ -96,6 +96,9 @@ if __name__ == '__main__':
             dataset = Generate_Dataset(root_path, content, args.sub_root)
             dataloader = DataLoader(dataset, batch_size=10)
             CS = CS_calculator(dataloader)
+            path1 = os.path.join(root_path, content, args.sub_root)
+            path2 = os.path.join(args.pretrained_path, content, 'original') # if
+            print(f"path1: {path1}, path2: {path2}")
             FIDELITY = torch_fidelity.calculate_metrics(
                 input1=os.path.join(root_path, content, args.sub_root), 
                 input2=os.path.join(args.pretrained_path, content, 'original'), # if content != 'coco' else "data/pretrain/coco/coco/original", 

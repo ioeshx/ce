@@ -15,7 +15,7 @@ coco_csv="data/mscoco.csv"
 benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 prompts_csv='/path/to/prompts.csv'
 
-##### ip #####
+##### instance #####
 for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
@@ -26,7 +26,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet";
         erase_type="instance"
         retain_path="data/instance.csv"
         contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
-        type="ip"
+        type="instance"
     else
         anchor_concepts="art"
         erase_type="style"
@@ -123,8 +123,8 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet";
             --prompt_from_filename
         python util/clip_score_cal.py \
             --contents "${content}" \
-            --root_path "${images_root_candidate}/${content}" \
-            --pretrained_path "${images_root_candidate}/${content}"
+            --root_path "${images_root_candidate}/" \
+            --pretrained_path "${images_root_candidate}/"
     done
         set +f
         IFS="$old_ifs"
