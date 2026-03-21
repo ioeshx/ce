@@ -95,7 +95,7 @@ if __name__ == '__main__':
             CS = CS_calculator(dataloader)
             FIDELITY = torch_fidelity.calculate_metrics(
                 input1=os.path.join(root_path, content, args.sub_root), 
-                input2=os.path.join(args.pretrained_path, content, 'original') if content != 'coco' else "data/pretrain/coco/coco/original", 
+                input2=os.path.join(args.pretrained_path, content, 'original'), # if content != 'coco' else "data/pretrain/coco/coco/original", 
                 cuda=True, 
                 fid=True, 
                 verbose=False,
