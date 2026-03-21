@@ -21,7 +21,10 @@ class Generate_Dataset(Dataset):
             df = pd.read_csv("data/mscoco.csv")
             self.texts = [df.loc[df['image_id'].isin([int(os.path.basename(x).replace('COCO_val2014_', '').split('.')[0])]), 'text'].tolist()[0] for x in self.images]
         else:
-            self.texts = [('_').join(x.split('/')[-1].split('_')[:-1]) for x in self.images]
+            # '_' to ' '
+            self.texts = [(' ').join(x.split('/')[-1].split('_')[:-1]) for x in self.images]
+        print(self.images[:5])
+        print(self.texts[:5])
     
     def __len__(self,):
         return len(self.images)

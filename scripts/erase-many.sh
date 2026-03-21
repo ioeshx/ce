@@ -15,7 +15,7 @@ coco_csv="data/mscoco.csv"
 benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
 prompts_csv='/path/to/prompts.csv'
 
-##### ip #####
+##### many #####
 for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""

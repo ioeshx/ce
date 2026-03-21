@@ -7,4 +7,4 @@ diffusers
 transformers
 accelerate
 torch_fidelity
-prettytabl
+prettytable
