@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 target_concepts="Snoopy, Mickey, Spongebob"
-anchor_concepts="dog,mouse,sponge"
+anchor_concepts=""
 k=10
 boundary_topk=5
 retian_path="data/instance.csv"
