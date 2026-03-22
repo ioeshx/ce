@@ -17,8 +17,8 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-# for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
-for target_concepts in "Snoopy" "Snoopy, Mickey" "Van Gogh" "Picasso" "Monet"; do
+# for target_concepts in "Snoopy" "Snoopy, Mickey" "Van Gogh" "Picasso" "Monet"; do
+for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -128,7 +128,8 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Van Gogh" "Picasso" "Monet"; d
         python util/clip_score_cal.py \
             --contents "${content}" \
             --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/"
+            --pretrained_path "${images_root_candidate}/" \
+            --version "openai/clip-vit-large-patch14"
     done
         set +f
         IFS="$old_ifs"
@@ -155,7 +156,9 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Van Gogh" "Picasso" "Monet"; d
         python util/clip_score_cal.py \
             --contents "coco" \
             --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/"
+            --pretrained_path "${images_root_candidate}/" \
+            --version "openai/clip-vit-large-patch14"
+
     fi
 done
 
