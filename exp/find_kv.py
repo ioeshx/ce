@@ -37,15 +37,12 @@ def find_cross_attention_kv(unet):
     kv_items = []
 
     for module_name, module in unet.named_modules():
-        # diffusers 里交叉注意力通常有 to_k / to_v
-        if hasattr(module, "to_k") and hasattr(module, "to_v"):
+        # 在 SD UNet 中，attn2 才是 cross-attention
+        if module_name.endswith("attn2") and hasattr(module, "to_k") and hasattr(module, "to_v"):
             k_w = get_weight_tensor(module.to_k)
             v_w = get_weight_tensor(module.to_v)
 
-            # 进一步确认是 cross-attn：存在 cross_attention_dim，且不是 None
-            is_cross = hasattr(module, "cross_attention_dim") and (module.cross_attention_dim is not None)
-
-            if k_w is not None and v_w is not None and is_cross:
+            if k_w is not None and v_w is not None:
                 kv_items.append(
                     {
                         "name": module_name,

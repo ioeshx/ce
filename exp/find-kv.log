@@ -1,0 +1,39 @@
+============================================================
+Cross-Attention K/V 统计结果
+模型: CompVis/stable-diffusion-v1-4
+K 矩阵数量: 16
+V 矩阵数量: 16
+K+V 总数: 32
+============================================================
+[1] down_blocks.0.attentions.0.transformer_blocks.0.attn2
+    K shape: (320, 768), V shape: (320, 768)
+[2] down_blocks.0.attentions.1.transformer_blocks.0.attn2
+    K shape: (320, 768), V shape: (320, 768)
+[3] down_blocks.1.attentions.0.transformer_blocks.0.attn2
+    K shape: (640, 768), V shape: (640, 768)
+[4] down_blocks.1.attentions.1.transformer_blocks.0.attn2
+    K shape: (640, 768), V shape: (640, 768)
+[5] down_blocks.2.attentions.0.transformer_blocks.0.attn2
+    K shape: (1280, 768), V shape: (1280, 768)
+[6] down_blocks.2.attentions.1.transformer_blocks.0.attn2
+    K shape: (1280, 768), V shape: (1280, 768)
+[7] up_blocks.1.attentions.0.transformer_blocks.0.attn2
+    K shape: (1280, 768), V shape: (1280, 768)
+[8] up_blocks.1.attentions.1.transformer_blocks.0.attn2
+    K shape: (1280, 768), V shape: (1280, 768)
+[9] up_blocks.1.attentions.2.transformer_blocks.0.attn2
+    K shape: (1280, 768), V shape: (1280, 768)
+[10] up_blocks.2.attentions.0.transformer_blocks.0.attn2
+    K shape: (640, 768), V shape: (640, 768)
+[11] up_blocks.2.attentions.1.transformer_blocks.0.attn2
+    K shape: (640, 768), V shape: (640, 768)
+[12] up_blocks.2.attentions.2.transformer_blocks.0.attn2
+    K shape: (640, 768), V shape: (640, 768)
+[13] up_blocks.3.attentions.0.transformer_blocks.0.attn2
+    K shape: (320, 768), V shape: (320, 768)
+[14] up_blocks.3.attentions.1.transformer_blocks.0.attn2
+    K shape: (320, 768), V shape: (320, 768)
+[15] up_blocks.3.attentions.2.transformer_blocks.0.attn2
+    K shape: (320, 768), V shape: (320, 768)
+[16] mid_block.attentions.0.transformer_blocks.0.attn2
+    K shape: (1280, 768), V shape: (1280, 768)

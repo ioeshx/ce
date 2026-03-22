@@ -5,7 +5,6 @@ os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 import time
 import math
 from collections import defaultdict
-from types import MethodType
 import torch
 import argparse
 import numpy as np
@@ -28,6 +27,12 @@ def seed_everything(seed, deterministic=False):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
+def build_probe_prompt(base_prompt, concept):
+    if not base_prompt:
+        return concept
+    if '{}' in base_prompt:
+        return base_prompt.format(concept)
+    return base_prompt
 
 def get_token_id(prompt, tokenizer=None, return_ids_only=True):
     token_ids = tokenizer(prompt, padding="max_length", max_length=tokenizer.model_max_length, truncation=True, return_tensors="pt")
@@ -42,35 +47,82 @@ def get_subject_token_indices(tokenized_inputs, use_all_tokens=False):
 
 
 class CrossAttentionScoreProbe:
+    class ScoreCaptureProcessor:
+        def __init__(self, layer_name, base_processor, token_indices, score_cache, active_getter):
+            self.layer_name = layer_name
+            self.base_processor = base_processor
+            self.token_indices = token_indices
+            self.score_cache = score_cache
+            self.active_getter = active_getter
+
+        def _prepare_states(self, tensor):
+            if tensor.dim() == 4:
+                b, c, h, w = tensor.shape
+                return tensor.view(b, c, h * w).transpose(1, 2)
+            return tensor
+
+        def _compute_score(self, attn, hidden_states, encoder_hidden_states):
+            hidden_states = self._prepare_states(hidden_states)
+            encoder_hidden_states = self._prepare_states(encoder_hidden_states)
+
+            if getattr(attn, "norm_cross", False):
+                encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
+
+            query = attn.to_q(hidden_states)
+            key = attn.to_k(encoder_hidden_states)
+
+            query = attn.head_to_batch_dim(query)
+            key = attn.head_to_batch_dim(key)
+
+            scores = torch.bmm(query, key.transpose(-1, -2)) * attn.scale
+            probs = torch.softmax(scores, dim=-1)
+
+            max_tokens = probs.shape[-1]
+            valid_token_indices = [idx for idx in self.token_indices if 0 <= idx < max_tokens]
+            if len(valid_token_indices) == 0:
+                return
+
+            token_scores = probs[:, :, valid_token_indices]
+            self.score_cache[self.layer_name].append(float(token_scores.mean().item()))
+
+        def __call__(self, attn, hidden_states, encoder_hidden_states=None, attention_mask=None, temb=None, *args, **kwargs):
+            output = self.base_processor(
+                attn,
+                hidden_states,
+                encoder_hidden_states=encoder_hidden_states,
+                attention_mask=attention_mask,
+                temb=temb,
+                *args,
+                **kwargs,
+            )
+
+            if self.active_getter() and encoder_hidden_states is not None and len(self.token_indices) > 0:
+                try:
+                    self._compute_score(attn, hidden_states, encoder_hidden_states)
+                except Exception:
+                    # Probe failures should not break model editing.
+                    pass
+
+            return output
+
     def __init__(self, unet, target_token_indices):
         self.unet = unet
         self.target_token_indices = target_token_indices
-        self.hooks = []
-        self.original_get_attention_scores = {}
+        self.original_processors = {}
         self.layer_step_cache = defaultdict(list)
         self.layer_history = defaultdict(list)
         self.active = False
 
-    def _patched_get_attention_scores(self, module_name, original_fn):
-        def _wrapper(module, query, key, attention_mask=None):
-            attn_probs = original_fn(query, key, attention_mask)
-            if self.active and len(self.target_token_indices) > 0:
-                max_tokens = attn_probs.shape[-1]
-                valid_token_indices = [idx for idx in self.target_token_indices if 0 <= idx < max_tokens]
-                if len(valid_token_indices) > 0:
-                    token_scores = attn_probs[:, :, valid_token_indices]
-                    score = token_scores.mean().item()
-                    self.layer_step_cache[module_name].append(score)
-            return attn_probs
-        return _wrapper
-
     def register(self):
         for module_name, module in self.unet.named_modules():
-            if module_name.endswith("attn2") and hasattr(module, "get_attention_scores"):
-                original_fn = module.get_attention_scores
-                self.original_get_attention_scores[module_name] = original_fn
-                module.get_attention_scores = MethodType(
-                    self._patched_get_attention_scores(module_name, original_fn), module
+            if module_name.endswith("attn2") and hasattr(module, "processor"):
+                self.original_processors[module_name] = module.processor
+                module.processor = self.ScoreCaptureProcessor(
+                    layer_name=module_name,
+                    base_processor=module.processor,
+                    token_indices=self.target_token_indices,
+                    score_cache=self.layer_step_cache,
+                    active_getter=lambda: self.active,
                 )
 
     def set_active(self, active):
@@ -87,9 +139,9 @@ class CrossAttentionScoreProbe:
 
     def restore(self):
         for module_name, module in self.unet.named_modules():
-            if module_name in self.original_get_attention_scores:
-                module.get_attention_scores = self.original_get_attention_scores[module_name]
-        self.original_get_attention_scores.clear()
+            if module_name in self.original_processors:
+                module.processor = self.original_processors[module_name]
+        self.original_processors.clear()
 
 
 @torch.no_grad()
@@ -152,22 +204,32 @@ def probe_attention_scores(args, pipeline, prompt, token_indices, device="cuda")
 
 @torch.no_grad()
 def build_dynamic_layer_mask(args, pipeline, target_concepts, anchor_concepts, device="cuda"):
-    prompt_a = args.probe_prompt_a.strip() if args.probe_prompt_a.strip() else target_concepts[0]
-    prompt_b = args.probe_prompt_b.strip() if args.probe_prompt_b.strip() else anchor_concepts[0]
 
-    prompt_a_tokens = get_token_id(prompt_a, pipeline.tokenizer, return_ids_only=False)
-    token_idx_a = get_subject_token_indices(prompt_a_tokens, use_all_tokens=args.target_all_tokens)
-    scores_a = probe_attention_scores(args, pipeline, prompt_a, token_idx_a, device=device)
+    prompt_template = "a photo of {}." # imagenet_templates[0] if args.probe_prompt_a == '' else args.probe_prompt_a
+    per_layer_scores = defaultdict(list)
 
-    if args.score_mode == 'residual':
-        prompt_b_tokens = get_token_id(prompt_b, pipeline.tokenizer, return_ids_only=False)
-        token_idx_b = get_subject_token_indices(prompt_b_tokens, use_all_tokens=args.target_all_tokens)
-        scores_b = probe_attention_scores(args, pipeline, prompt_b, token_idx_b, device=device)
-        all_layers = set(scores_a.keys()) | set(scores_b.keys())
-        raw_scores = {layer: abs(scores_a.get(layer, 0.0) - scores_b.get(layer, 0.0)) for layer in all_layers}
-    else:
-        raw_scores = scores_a
+    for concept_idx, target_concept in enumerate(target_concepts):
+        prompt_a = build_probe_prompt(prompt_template, target_concept)
+        prompt_a_tokens = get_token_id(prompt_a, pipeline.tokenizer, return_ids_only=False)
+        token_idx_a = get_subject_token_indices(prompt_a_tokens, use_all_tokens=args.target_all_tokens)
+        scores_a = probe_attention_scores(args, pipeline, prompt_a, token_idx_a, device=device)
 
+        if args.score_mode == 'residual':
+            anchor_concept = anchor_concepts[concept_idx] if concept_idx < len(anchor_concepts) else anchor_concepts[0]
+            prompt_b = build_probe_prompt(prompt_template, anchor_concept)
+            prompt_b_tokens = get_token_id(prompt_b, pipeline.tokenizer, return_ids_only=False)
+            token_idx_b = get_subject_token_indices(prompt_b_tokens, use_all_tokens=args.target_all_tokens)
+            scores_b = probe_attention_scores(args, pipeline, prompt_b, token_idx_b, device=device)
+            all_layers = set(scores_a.keys()) | set(scores_b.keys())
+            concept_scores = {layer: abs(scores_a.get(layer, 0.0) - scores_b.get(layer, 0.0)) for layer in all_layers}
+        else:
+            concept_scores = scores_a
+
+        for layer_name, score in concept_scores.items():
+            per_layer_scores[layer_name].append(float(score))
+
+    raw_scores = {layer_name: float(np.mean(scores)) for layer_name, scores in per_layer_scores.items() if len(scores) > 0}
+    print(f"[Dynamic Mask] Averaged probing over {len(target_concepts)} target concepts.")
     return raw_scores
 
 
@@ -231,6 +293,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             anchor_concepts=anchor_concepts,
             device=device,
         )
+        print("raw_scores: ", raw_scores)
         layer_gamma = build_layer_gammas(
             edit_dict=edit_dict,
             raw_scores=raw_scores,
@@ -432,10 +495,8 @@ if __name__ == '__main__':
     parser.add_argument('--zero_anchor', action='store_true', default=False, help="Whether to use a zero vector as the anchor concept representation (only valid when mapping2context is False)")
     # attention-score-based dynamic masking
     parser.add_argument('--enable_dynamic_mask', action='store_true', default=False, help="Enable attention-map based layer scoring and masking")
-    parser.add_argument('--probe_prompt_a', type=str, default='', help="Prompt A for attention probing; default uses first target concept")
-    parser.add_argument('--probe_prompt_b', type=str, default='', help="Prompt B for residual scoring; default uses first anchor concept")
     parser.add_argument('--score_mode', type=str, default='absolute', choices=['absolute', 'residual'])
-    parser.add_argument('--probe_steps', type=int, default=50, help="Total denoising steps used by probing")
+    parser.add_argument('--probe_steps', type=int, default=20, help="Total denoising steps used by probing")
     parser.add_argument('--window_start_ratio', type=float, default=0.3, help="Golden window start ratio in [0,1)")
     parser.add_argument('--window_end_ratio', type=float, default=0.6, help="Golden window end ratio in (0,1]")
     parser.add_argument('--temporal_agg', type=str, default='mean', choices=['mean', 'max'])
