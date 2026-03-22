@@ -17,7 +17,7 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-for target_concepts in "apple" "bed" "book" "car" "smartphone";; do
+for target_concepts in "apple" "bed" "book" "car" "smartphone"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -58,11 +58,7 @@ for target_concepts in "apple" "bed" "book" "car" "smartphone";; do
         --header "concept" \
         --params V \
         --save_path ${save_path} \
-        --ckpt_path_file "${ckpt_meta}" \
-        --elastic_calibration \
-        --elastic_scale 150.0 \
-        --mapping2context \
-        --anchor_using_extend
+        --ckpt_path_file "${ckpt_meta}"
 
     edit_ckpt=$(cat "${ckpt_meta}")
     rm -f "${ckpt_meta}"
