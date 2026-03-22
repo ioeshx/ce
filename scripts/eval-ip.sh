@@ -17,16 +17,17 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-for target_concepts in "Snoopy" "Snoopy Mickey" "Snoopy, Mickey, Spongebob"; do
+# for target_concepts in "Snoopy" "Snoopy Mickey" "Snoopy, Mickey, Spongebob"; do
+for target_concepts in "Snoopy, Mickey"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
     # contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
-    if [ "$target_concepts" = "Snoopy, Mickey, Spongebob" ]; then
+    if [ "$target_concepts" = "Snoopy, Mickey, Spongebob" ] || [ "$target_concepts" = "Snoopy" ] || [ "$target_concepts" = "Snoopy Mickey" ]; then
         anchor_concepts=""
         erase_type="instance"
         retain_path="data/instance.csv"
-        contents="Snoopy, Mickey, Spongebob, Pikachu, Hello Kitty"
+        contents="Hello Kitty, Mickey, Pikachu, Snoopy, Spongebob"
     elif [ "$target_concepts" = "bed" ] || [ "$target_concepts" = "smartphone" ] || [ "$target_concepts" = "apple" ] || [ "$target_concepts" = "car" ] || [ "$target_concepts" = "book" ]; then
         anchor_concepts=""
         erase_type="object"
