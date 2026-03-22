@@ -501,7 +501,7 @@ if __name__ == '__main__':
     parser.add_argument('--window_end_ratio', type=float, default=0.6, help="Golden window end ratio in (0,1]")
     parser.add_argument('--temporal_agg', type=str, default='mean', choices=['mean', 'max'])
     parser.add_argument('--mask_strategy', type=str, default='top_k', choices=['top_k', 'min_max'])
-    parser.add_argument('--mask_topk_ratio', type=float, default=0.7, help="Top-k ratio when mask_strategy=top_k")
+    parser.add_argument('--mask_topk_ratio', type=float, default=0.9, help="Top-k ratio when mask_strategy=top_k")
     parser.add_argument('--probe_seed', type=int, default=0, help="Random seed for probing; set -1 to disable fixed probe seed")
 
     args = parser.parse_args()

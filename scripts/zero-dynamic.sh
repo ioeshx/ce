@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 trim_spaces() {
     s="$1"
@@ -27,7 +27,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
         anchor_concepts=""
         erase_type="instance"
         retain_path="data/instance.csv"
-        contents="Hello Kitty, Mickey, Pikachu, Snoopy, Spongebob"
+        contents="Mickey, Snoopy, Spongebob, Hello Kitty, Pikachu,"
     elif [ "$target_concepts" = "bed" ] || [ "$target_concepts" = "smartphone" ] || [ "$target_concepts" = "apple" ] || [ "$target_concepts" = "car" ] || [ "$target_concepts" = "book" ]; then
         anchor_concepts=""
         erase_type="object"
@@ -60,7 +60,8 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --enable_dynamic_mask
+        --enable_dynamic_mask \
+        --mask_topk_ratio 0.9
 
 
     edit_ckpt=$(cat "${ckpt_meta}")

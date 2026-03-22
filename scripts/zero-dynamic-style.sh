@@ -17,7 +17,8 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
+# for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
+for target_concepts in "Van Gogh" "Picasso" "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -26,13 +27,13 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
         anchor_concepts=""
         erase_type="instance"
         retain_path="data/instance.csv"
-        contents="Hello Kitty, Mickey, Pikachu, Snoopy, Spongebob"
+        contents="Mickey, Snoopy, Spongebob, Hello Kitty, Pikachu,"
     elif [ "$target_concepts" = "bed" ] || [ "$target_concepts" = "smartphone" ] || [ "$target_concepts" = "apple" ] || [ "$target_concepts" = "car" ] || [ "$target_concepts" = "book" ]; then
         anchor_concepts=""
         erase_type="object"
         retain_path="data/object.csv"
         contents="bed, smartphone, apple, car, book"
-    else
+    elif [ "$target_concepts" = "Van Gogh" ] || [ "$target_concepts" = "Picasso" ] || [ "$target_concepts" = "Monet" ]; then
         anchor_concepts="art"
         erase_type="style"
         retain_path="data/style.csv"
@@ -51,7 +52,7 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
 
     ckpt_meta=$(mktemp)
 
-    python erase-my.py \
+    python erase-my-2.py \
         --target_concepts "${target_concepts}" \
         --anchor_concepts "${anchor_concepts}" \
         --retain_path "${retain_path}" \
@@ -59,23 +60,11 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --elastic_calibration \
-        --elastic_scale 150.0 \
-        --mapping2context \
-        --anchor_using_extend
+        --enable_dynamic_mask
+
 
     edit_ckpt=$(cat "${ckpt_meta}")
     rm -f "${ckpt_meta}"
-
-    echo "[INFO] Running sample2.py for coco 1k..."
-    python sample2.py \
-        --target_concept "${target_concepts}" \
-        --contents "coco" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'original, edit' \
-        --batch_size 16 \
-        --save_root ${sample_save_root}
-        # --coco_max_num 100
 
     echo "[INFO] Running sample.py for instance..."
     python sample.py \
@@ -87,6 +76,15 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
         --num_samples 10 --batch_size 10 \
         --save_root ${sample_save_root}
 
+    echo "[INFO] Running sample2.py for coco 1k..."
+    python sample2.py \
+        --target_concept "${target_concepts}" \
+        --contents "coco" \
+        --edit_ckpt "${edit_ckpt}" \
+        --mode 'original, edit' \
+        --batch_size 16 \
+        --save_root ${sample_save_root}
+        # --coco_max_num 100
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
