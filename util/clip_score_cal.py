@@ -75,12 +75,13 @@ if __name__ == '__main__':
     parser.add_argument('--root_path', type=str)
     parser.add_argument('--sub_root', type=str, default='edit')
     parser.add_argument('--pretrained_path', type=str)
+    parser.add_argument('--version', type=str, default='openai/clip-vit-large-patch14')
     args = parser.parse_args()
 
     contents = [item.strip() for item in args.contents.split(',')]
     root_paths = find_root_paths(args.root_path, args.sub_root)
 
-    CS_calculator = CLIP_Score()
+    CS_calculator = CLIP_Score(version=args.version)
 
     for root_path in root_paths:
         save_txt = os.path.join(root_path, 'record_metrics.txt')

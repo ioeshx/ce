@@ -13,7 +13,7 @@ trim_spaces() {
     printf '%s' "$s"
 }
 coco_csv="data/mscoco.csv"
-benchmark_py='/home/shx/code/ce-benchmark/ce-benchmark.py'
+benchmark_py='../ce-benchmark/ce-benchmark.py'
 prompts_csv='/path/to/prompts.csv'
 
 # target_concepts="imagenet100"

@@ -365,3 +365,7 @@ template_dict = {
     'celebrity': celebrity_templates,
     'object': cifar_templates,
 }
+
+
+if  __name__ == "__main__":
+    print(len(CIFAR100_classes))
