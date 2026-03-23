@@ -61,7 +61,8 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
         --enable_dynamic_mask \
-        --mapping2context
+        --mapping2context \
+        --
 
 
     edit_ckpt=$(cat "${ckpt_meta}")

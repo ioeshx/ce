@@ -80,6 +80,7 @@ if __name__ == '__main__':
 
     contents = [item.strip() for item in args.contents.split(',')]
     root_paths = find_root_paths(args.root_path, args.sub_root)
+    print(f"Found root paths: {root_paths}")
 
     CS_calculator = CLIP_Score(version=args.version)
 

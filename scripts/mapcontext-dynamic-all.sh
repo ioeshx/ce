@@ -89,7 +89,20 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Va
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
-    target_group=$(echo "${target_concepts}" | sed 's/, /_/g; s/,/_/g; s/ /_/g')
+    # target_group=$(echo "${target_concepts}" | sed 's/, /_/g; s/,/_/g; s/ /_/g')
+    target_group=$(printf '%s' "${target_concepts}" | awk -F',' '
+        {
+            for (i = 1; i <= NF; i++) {
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $i)
+                parts[i] = $i
+            }
+            out = parts[1]
+            for (i = 2; i <= NF; i++) out = out "_" parts[i]
+            print out
+        }
+    ')
+
+
     images_root_candidate="${sample_save_root}/${target_group}"
 
     if [ ! -d "${images_root_candidate}" ]; then

@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 trim_spaces() {
     s="$1"
@@ -17,8 +17,8 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-# for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
-for target_concepts in "Van Gogh" "Picasso" "Monet"; do
+# for target_concepts in "Van Gogh" "Picasso" "Monet"; do
+for target_concepts in "Van Gogh"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -60,7 +60,8 @@ for target_concepts in "Van Gogh" "Picasso" "Monet"; do
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --enable_dynamic_mask
+        --enable_dynamic_mask \
+        --mask_topk_ratio 0.8125 # 13 layers
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
@@ -84,11 +85,23 @@ for target_concepts in "Van Gogh" "Picasso" "Monet"; do
         --mode 'original, edit' \
         --batch_size 16 \
         --save_root ${sample_save_root}
-        # --coco_max_num 100
+        --coco_max_num 100
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
-    target_group=$(echo "${target_concepts}" | sed 's/, /_/g; s/,/_/g; s/ /_/g')
+    # target_group=$(echo "${target_concepts}" | sed 's/, /_/g; s/,/_/g; s/ /_/g')
+    target_group=$(printf '%s' "${target_concepts}" | awk -F',' '
+        {
+            for (i = 1; i <= NF; i++) {
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $i)
+                parts[i] = $i
+            }
+            out = parts[1]
+            for (i = 2; i <= NF; i++) out = out "_" parts[i]
+            print out
+        }
+    ')
+
     images_root_candidate="${sample_save_root}/${target_group}"
 
     if [ ! -d "${images_root_candidate}" ]; then

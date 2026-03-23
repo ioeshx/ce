@@ -18,7 +18,7 @@ prompts_csv='/path/to/prompts.csv'
 
 ##### instance #####
 # for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
-for target_concepts in "Snoopy, Mickey, Spongebob"; do
+for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -61,7 +61,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
         --enable_dynamic_mask \
-        --mask_topk_ratio 0.9
+        --mask_topk_ratio 0.8125
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
@@ -91,6 +91,8 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
     target_group=$(echo "${target_concepts}" | sed 's/, /_/g; s/,/_/g; s/ /_/g')
     images_root_candidate="${sample_save_root}/${target_group}"
+    echo "${images_root_candidate}"
+    echo "${target_group}"
 
     if [ ! -d "${images_root_candidate}" ]; then
         echo "[WARN] Not found: ${images_root_candidate}"
@@ -115,16 +117,17 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
         fi
 
         echo "[INFO] Benchmarking content: ${content}"
-        python "${benchmark_py}" \
-            --metrics lpips aesthetic \
-            --images-root "${image_root}" \
-            --fid-ref "${fid_ref}" \
-            --prompts-csv "${prompts_csv}" \
-            --lpips-original "${lpips_original}" \
-            --lpips-edited "${lpips_edited}" \
-            --output-json "${output_json}" \
-            --prompt_from_filename
+        # python "${benchmark_py}" \
+        #     --metrics lpips aesthetic \
+        #     --images-root "${image_root}" \
+        #     --fid-ref "${fid_ref}" \
+        #     --prompts-csv "${prompts_csv}" \
+        #     --lpips-original "${lpips_original}" \
+        #     --lpips-edited "${lpips_edited}" \
+        #     --output-json "${output_json}" \
+        #     --prompt_from_filename
             # --metrics fid clip lpips aesthetic \
+        
         python util/clip_score_cal.py \
             --contents "${content}" \
             --root_path "${images_root_candidate}/" \
