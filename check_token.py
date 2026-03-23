@@ -12,8 +12,10 @@ tokenizer = SimpleTokenizer()
 # 选取两个不同的模板并格式化句子
 i = random.randint(0, len(imagenet_templates) - 1)
 j = random.randint(0, len(imagenet_templates) - 1)
-sentence1 = imagenet_templates[i].format(word)
-sentence2 = imagenet_templates[j].format(word)
+# sentence1 = imagenet_templates[i].format(word)
+# sentence2 = imagenet_templates[j].format(word)
+sentence1 = ""
+sentence2 = ""
 
 # 获取Token IDs (提取第0个batch的数据)
 tokens1 = clip.tokenize(sentence1)[0]
@@ -25,8 +27,8 @@ def print_tokens(sentence, tokens):
     print("-" * 35)
     for token_id in tokens:
         token_id = token_id.item()
-        if token_id == 0:  # 跳过padding token (<|endoftext|>后的0)
-            continue
+        # if token_id == 0:  # 跳过padding token (<|endoftext|>后的0)
+        #     continue
         # 从decoder获取对应的字符
         token_str = tokenizer.decoder.get(token_id, '')
         print(f"{token_id:<10} | '{token_str}'")
