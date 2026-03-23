@@ -402,3 +402,4 @@ template_dict = {
 
 if  __name__ == "__main__":
     print(len(CIFAR100_classes))
+    print(len(painting_templates))

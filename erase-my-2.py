@@ -233,7 +233,7 @@ def build_dynamic_layer_mask(args, pipeline, target_concepts, anchor_concepts, d
     return raw_scores
 
 
-def build_layer_gammas(edit_dict, raw_scores, mask_strategy='top_k', topk_ratio=0.7):
+def build_layer_gammas(edit_dict, raw_scores, mask_strategy='top_k', topk_ratio=0.7, topk_count=None):
     layer_names = sorted({k.rsplit('.to_', 1)[0] for k in edit_dict.keys()})
     if len(layer_names) == 0:
         return {}
@@ -248,7 +248,10 @@ def build_layer_gammas(edit_dict, raw_scores, mask_strategy='top_k', topk_ratio=
         for name, score in scored_pairs:
             gammas[name] = (score - s_min) / denom
     else:
-        k = max(1, int(math.ceil(len(layer_names) * topk_ratio)))
+        if topk_count is not None:
+            k = max(1, min(int(topk_count), len(layer_names)))
+        else:
+            k = max(1, int(math.ceil(len(layer_names) * topk_ratio)))
         ranked = sorted(scored_pairs, key=lambda x: x[1], reverse=True)
         selected = {name for name, _ in ranked[:k]}
         for name, _ in ranked:
@@ -299,6 +302,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             raw_scores=raw_scores,
             mask_strategy=args.mask_strategy,
             topk_ratio=args.mask_topk_ratio,
+            topk_count=args.mask_topk_count,
         )
         active_layer_num = sum(1 for x in layer_gamma.values() if x > 0)
         print(f"[Dynamic Mask] Probed layers: {len(raw_scores)}, editable layers: {len(layer_gamma)}, active layers: {active_layer_num}")
@@ -334,14 +338,14 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print("Using all tokens for target.")
             target_embs = target_embs[0:(target_inputs.attention_mask[0].sum().item() - 1), :]  # all subject tokens [num_valid_tokens, 768]
         else:
-            print("Using last subject token for target and anchor.")
+            print("Using last subject token for target.")
             target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
         
+        anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
+
         if args.zero_anchor:
             print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
             anchor_embs = torch.zeros_like(target_embs)
-        else:
-            anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
         
         if args.mapping2context:
             print("Mapping to prompt context.")
@@ -502,6 +506,7 @@ if __name__ == '__main__':
     parser.add_argument('--temporal_agg', type=str, default='mean', choices=['mean', 'max'])
     parser.add_argument('--mask_strategy', type=str, default='top_k', choices=['top_k', 'min_max'])
     parser.add_argument('--mask_topk_ratio', type=float, default=0.75, help="Top-k ratio when mask_strategy=top_k")
+    parser.add_argument('--mask_topk_count', type=int, default=None, help="Top-k count when mask_strategy=top_k; if set, this overrides mask_topk_ratio")
     parser.add_argument('--probe_seed', type=int, default=0, help="Random seed for probing; set -1 to disable fixed probe seed")
     # 14/16 = 0.875, 13/16= 0.8125, 12/16 = 0.75
     args = parser.parse_args()
@@ -510,7 +515,10 @@ if __name__ == '__main__':
         print(f"{key}={value}")
 
     assert 0.0 <= args.window_start_ratio < args.window_end_ratio <= 1.0, "window ratios must satisfy 0 <= start < end <= 1"
-    assert 0.0 < args.mask_topk_ratio <= 1.0, "mask_topk_ratio should be in (0, 1]"
+    if args.mask_topk_count is not None:
+        assert args.mask_topk_count > 0, "mask_topk_count should be a positive integer"
+    else:
+        assert 0.0 < args.mask_topk_ratio <= 1.0, "mask_topk_ratio should be in (0, 1]"
     
     device = torch.device("cuda")
     if args.disable_fixed_seed:

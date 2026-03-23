@@ -18,7 +18,7 @@ prompts_csv='/path/to/prompts.csv'
 
 ##### instance #####
 # for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
-for target_concepts in "Monet"; do
+for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -52,40 +52,40 @@ for target_concepts in "Monet"; do
 
     ckpt_meta=$(mktemp)
 
-    # python erase-my-2.py \
-    #     --target_concepts "${target_concepts}" \
-    #     --anchor_concepts "${anchor_concepts}" \
-    #     --retain_path "${retain_path}" \
-    #     --header "concept" \
-    #     --params V \
-    #     --save_path ${save_path} \
-    #     --ckpt_path_file "${ckpt_meta}" \
-    #     --enable_dynamic_mask \
-    #     --mapping2context
+    python erase-my-2.py \
+        --target_concepts "${target_concepts}" \
+        --anchor_concepts "${anchor_concepts}" \
+        --retain_path "${retain_path}" \
+        --header "concept" \
+        --params V \
+        --save_path ${save_path} \
+        --ckpt_path_file "${ckpt_meta}" \
+        --enable_dynamic_mask \
+        --mapping2context
 
 
-    # edit_ckpt=$(cat "${ckpt_meta}")
-    # rm -f "${ckpt_meta}"
+    edit_ckpt=$(cat "${ckpt_meta}")
+    rm -f "${ckpt_meta}"
 
-    # echo "[INFO] Running sample.py for instance..."
-    # python sample.py \
-    #     --erase_type "${erase_type}" \
-    #     --target_concept "${target_concepts}" \
-    #     --contents "${contents}" \
-    #     --edit_ckpt "${edit_ckpt}" \
-    #     --mode 'original, edit' \
-    #     --num_samples 10 --batch_size 10 \
-    #     --save_root ${sample_save_root}
+    echo "[INFO] Running sample.py for instance..."
+    python sample.py \
+        --erase_type "${erase_type}" \
+        --target_concept "${target_concepts}" \
+        --contents "${contents}" \
+        --edit_ckpt "${edit_ckpt}" \
+        --mode 'original, edit' \
+        --num_samples 10 --batch_size 10 \
+        --save_root ${sample_save_root}
 
-    # echo "[INFO] Running sample2.py for coco 1k..."
-    # python sample2.py \
-    #     --target_concept "${target_concepts}" \
-    #     --contents "coco" \
-    #     --edit_ckpt "${edit_ckpt}" \
-    #     --mode 'original, edit' \
-    #     --batch_size 16 \
-    #     --save_root ${sample_save_root}
-    #     # --coco_max_num 100
+    echo "[INFO] Running sample2.py for coco 1k..."
+    python sample2.py \
+        --target_concept "${target_concepts}" \
+        --contents "coco" \
+        --edit_ckpt "${edit_ckpt}" \
+        --mode 'original, edit' \
+        --batch_size 16 \
+        --save_root ${sample_save_root}
+        # --coco_max_num 100
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}

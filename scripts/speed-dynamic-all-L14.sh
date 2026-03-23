@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 trim_spaces() {
     s="$1"
@@ -17,8 +17,7 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-# for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob"; do
-for target_concepts in "Snoopy, Mickey, Spongebob"; do
+for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -61,8 +60,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
         --enable_dynamic_mask \
-        --mapping2context \
-        --
+        --mask_topk_count 14
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
@@ -90,7 +88,20 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
-    target_group=$(echo "${target_concepts}" | sed 's/, /_/g; s/,/_/g; s/ /_/g')
+    # target_group=$(echo "${target_concepts}" | sed 's/, /_/g; s/,/_/g; s/ /_/g')
+    target_group=$(printf '%s' "${target_concepts}" | awk -F',' '
+        {
+            for (i = 1; i <= NF; i++) {
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $i)
+                parts[i] = $i
+            }
+            out = parts[1]
+            for (i = 2; i <= NF; i++) out = out "_" parts[i]
+            print out
+        }
+    ')
+
+
     images_root_candidate="${sample_save_root}/${target_group}"
 
     if [ ! -d "${images_root_candidate}" ]; then
@@ -129,7 +140,8 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
         python util/clip_score_cal.py \
             --contents "${content}" \
             --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/"
+            --pretrained_path "${images_root_candidate}/" \
+            --version "openai/clip-vit-large-patch14"
     done
         set +f
         IFS="$old_ifs"
@@ -156,7 +168,9 @@ for target_concepts in "Snoopy, Mickey, Spongebob"; do
         python util/clip_score_cal.py \
             --contents "coco" \
             --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/"
+            --pretrained_path "${images_root_candidate}/" \
+            --version "openai/clip-vit-large-patch14"
+
     fi
 done
 

@@ -75,9 +75,7 @@ if __name__ == '__main__':
     parser.add_argument('--root_path', type=str)
     parser.add_argument('--sub_root', type=str, default='edit')
     parser.add_argument('--pretrained_path', type=str)
-    parser.add_argument('--version', type=str, default='openai/clip-vit-base-patch16')
-    # openai/clip-vit-base-patch16
-    # openai/clip-vit-base-patch32
+    parser.add_argument('--version', type=str, default='openai/clip-vit-large-patch14')
     args = parser.parse_args()
 
     contents = [item.strip() for item in args.contents.split(',')]
