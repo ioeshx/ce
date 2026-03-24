@@ -332,6 +332,15 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
         anchor_inputs = get_token_id(anchor_concepts[i], pipeline.tokenizer, return_ids_only=False)
         anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+        
+        # print tokens
+        anchor_valid_len = int(anchor_inputs.attention_mask[0].sum().item())
+        anchor_ids = anchor_inputs.input_ids[0][:anchor_valid_len].tolist()
+        anchor_tokens = pipeline.tokenizer.convert_ids_to_tokens(anchor_ids)
+        print(f"[Anchor Tokens] concept='{anchor_concepts[i]}', valid_token_len={anchor_valid_len}")
+        for pos, (tok_id, tok_str) in enumerate(zip(anchor_ids, anchor_tokens)):
+            print(f"  pos={pos:02d} id={tok_id:<6} token={tok_str}")
+        
         if target_concepts == ['nudity']:
             target_embs = target_embs[1:, :]  # all tokens
             anchor_embs = anchor_embs[1:, :]  # all tokens
@@ -339,46 +348,51 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print("Using all tokens for target.")
             target_embs = target_embs[0:(target_inputs.attention_mask[0].sum().item() - 1), :]  # all subject tokens [num_valid_tokens, 768]
         else:
-            print("Using last subject token for target.")
-            target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
-        
-        anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token
+            if args.anchor_EoT:
+                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]  # EoT token [1,768]
+            else:
+                target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
 
-        if args.zero_anchor:
-            print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
-            anchor_embs = torch.zeros_like(target_embs)
+        # if args.zero_anchor:
+        #     print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
+        #     anchor_embs = torch.zeros_like(target_embs)
         
-        if args.mapEoT:
-            anchor_prompt = "a photo of {}.".format(anchor_concepts[i])
-            anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
-            anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
-            # EoT token
-            anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
+        # if args.mapEoT or args.mapLastSubjectToken:
+        #     anchor_prompt = "a photo of {}.".format(anchor_concepts[i])
+        #     anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
+        #     anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]    
+        #     # EoT token
+        #     if args.mapEoT:
+        #         print("Mapping anchor  EoT token representation.")
+        #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
+        #     elif args.mapLastSubjectToken:
+        #         print("Mapping anchor last subject token representation.")
+        #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]
         
-        if args.mapping2context:
-            print("Mapping to prompt context.")
-            current_template = context_templates_no_in_style[target_concepts[i]]
-            for j in range(0, len(current_template)):
-                # anchor_prompt = current_template[j].replace("{}", "")
-                # anchor_prompt = current_template[j].format(anchor_concepts[i])
-                anchor_prompt = current_template[j]
-                anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
-                anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
-                if target_concepts == ['nudity']:
-                    anchor_embs = anchor_embs[1:, :]  # all tokens
-                if args.target_all_tokens:
-                    anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True)
-                    # repeat to match target_embs shape for later calculations
-                    anchor_embs = anchor_embs.repeat(target_embs.size(0), 1)  
-                else:
-                    # average of all subject tokens [1,768]
-                    # anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True) 
-                    if args.anchor_last_subject_token:
-                        # anchor last subject token
-                        anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]
-                    else:
-                        # anchor using EoT token
-                        anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
+        # if args.mapping2context:
+        #     print("Mapping to prompt context.")
+        #     current_template = context_templates_no_in_style[target_concepts[i]]
+        #     for j in range(0, len(current_template)):
+        #         # anchor_prompt = current_template[j].replace("{}", "")
+        #         # anchor_prompt = current_template[j].format(anchor_concepts[i])
+        #         anchor_prompt = current_template[j]
+        #         anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
+        #         anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+        #         if target_concepts == ['nudity']:
+        #             anchor_embs = anchor_embs[1:, :]  # all tokens
+        #         if args.target_all_tokens:
+        #             anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True)
+        #             # repeat to match target_embs shape for later calculations
+        #             anchor_embs = anchor_embs.repeat(target_embs.size(0), 1)  
+        #         else:
+        #             # average of all subject tokens [1,768]
+        #             # anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True) 
+        #             if args.anchor_last_subject_token:
+        #                 # anchor last subject token
+        #                 anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]
+        #             else:
+        #                 # anchor using EoT token
+        #                 anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
 
         all_target_embs_list.append(target_embs)
         all_anchor_embs_list.append(anchor_embs) # 【新增】
@@ -530,7 +544,8 @@ if __name__ == '__main__':
     parser.add_argument('--probe_seed', type=int, default=0, help="Random seed for probing; set -1 to disable fixed probe seed")
     # 14/16 = 0.875, 13/16= 0.8125, 12/16 = 0.75
     parser.add_argument("--mapEoT", action='store_true', default=False, help="Whether to map the anchor concept to the EoT token representation")
-
+    parser.add_argument("--mapLastSubjectToken", action='store_true', default=False, help="Whether to map the anchor concept to the last subject token representation instead of the EoT token when mapping2context is True")
+    parser.add_argument("--anchor_EoT", action='store_true', default=False, help="Whether to use the EoT token as the anchor representation when mapping2context is False")
     args = parser.parse_args()
     print("[Arguments]")
     for key, value in vars(args).items():
