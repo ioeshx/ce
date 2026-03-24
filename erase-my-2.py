@@ -348,6 +348,13 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
             anchor_embs = torch.zeros_like(target_embs)
         
+        if args.mapEoT:
+            anchor_prompt = "a photo of {}.".format(anchor_concepts[i])
+            anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
+            anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+            # EoT token
+            anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
+        
         if args.mapping2context:
             print("Mapping to prompt context.")
             current_template = context_templates_no_in_style[target_concepts[i]]
