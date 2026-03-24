@@ -348,10 +348,11 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print("Using all tokens for target.")
             target_embs = target_embs[0:(target_inputs.attention_mask[0].sum().item() - 1), :]  # all subject tokens [num_valid_tokens, 768]
         else:
+            target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
             if args.anchor_EoT:
                 anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]  # EoT token [1,768]
             else:
-                target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
+                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # EoT token [1,768]
 
         # if args.zero_anchor:
         #     print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
