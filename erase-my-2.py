@@ -529,6 +529,8 @@ if __name__ == '__main__':
     parser.add_argument('--mask_topk_count', type=int, default=None, help="Top-k count when mask_strategy=top_k; if set, this overrides mask_topk_ratio")
     parser.add_argument('--probe_seed', type=int, default=0, help="Random seed for probing; set -1 to disable fixed probe seed")
     # 14/16 = 0.875, 13/16= 0.8125, 12/16 = 0.75
+    parser.add_argument("--mapEoT", action='store_true', default=False, help="Whether to map the anchor concept to the EoT token representation")
+
     args = parser.parse_args()
     print("[Arguments]")
     for key, value in vars(args).items():
