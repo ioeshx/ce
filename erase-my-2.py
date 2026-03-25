@@ -15,7 +15,7 @@ from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
 import random
 
 from util.utils import str2bool
-from util.template import imagenet_templates, imagenet_templates_extend, imagenet_classes, CIFAR100_classes
+from util.template import imagenet_templates, imagenet_templates_extend, imagenet_classes, CIFAR100_classes, painting_templates
 from util.context_template import context_templates, context_templates_no_in_style
 
 
@@ -352,7 +352,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             if args.anchor_EoT:
                 anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]  # EoT token [1,768]
             else:
-                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # EoT token [1,768]
+                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
 
         # if args.zero_anchor:
         #     print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
@@ -370,31 +370,41 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         #         print("Mapping anchor last subject token representation.")
         #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]
         
-        # if args.mapping2context:
-        #     print("Mapping to prompt context.")
-        #     current_template = context_templates_no_in_style[target_concepts[i]]
-        #     for j in range(0, len(current_template)):
-        #         # anchor_prompt = current_template[j].replace("{}", "")
-        #         # anchor_prompt = current_template[j].format(anchor_concepts[i])
-        #         anchor_prompt = current_template[j]
-        #         anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
-        #         anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
-        #         if target_concepts == ['nudity']:
-        #             anchor_embs = anchor_embs[1:, :]  # all tokens
-        #         if args.target_all_tokens:
-        #             anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True)
-        #             # repeat to match target_embs shape for later calculations
-        #             anchor_embs = anchor_embs.repeat(target_embs.size(0), 1)  
-        #         else:
-        #             # average of all subject tokens [1,768]
-        #             # anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True) 
-        #             if args.anchor_last_subject_token:
-        #                 # anchor last subject token
-        #                 anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]
-        #             else:
-        #                 # anchor using EoT token
-        #                 anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
+        if args.mapping2context:
+            print("Mapping to prompt context.")
+            current_template = imagenet_templates if args.erasetype == "instance" else painting_templates # context_templates_no_in_style[target_concepts[i]]
+            anchor_embs_list = []
+            for j in range(0, len(current_template)):
+                # anchor_prompt = current_template[j].replace("{}", "")
+                # anchor_prompt = current_template[j].format(anchor_concepts[i])
+                anchor_prompt = current_template[j].format(anchor_concepts[i]) # if '{}' in current_template[j] else anchor_concepts[i]
+                anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
+                anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
+                anchor_embs_list.append(anchor_embs)
 
+                # if target_concepts == ['nudity']:
+                #     anchor_embs = anchor_embs[1:, :]  # all tokens
+                # if args.target_all_tokens:
+                #     anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True)
+                #     # repeat to match target_embs shape for later calculations
+                #     anchor_embs = anchor_embs.repeat(target_embs.size(0), 1)  
+                # else:
+                #     # average of all subject tokens [1,768]
+                #     # anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True) 
+                #     if args.anchor_last_subject_token:
+                #         # anchor last subject token
+                #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]
+                #     else:
+                #         # anchor using EoT token
+                #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
+            if args.mapAll:
+                anchor_embs = torch.cat(anchor_embs_list, dim=0)  # average over templates
+                target_embs = target_embs.repeat(len(anchor_embs), 1)  # repeat target_embs to match the number of templates
+            elif args.mapMean:
+                anchor_embs = torch.stack(anchor_embs_list, dim=0).mean(dim=0).mean(dim=0, keepdim=True)  # average over templates
+                
+            print("anchor shape:", anchor_embs.shape, "target shape:", target_embs.shape)
         all_target_embs_list.append(target_embs)
         all_anchor_embs_list.append(anchor_embs) # 【新增】
         sum_target_target.append(target_embs.T @ target_embs)
@@ -547,6 +557,11 @@ if __name__ == '__main__':
     parser.add_argument("--mapEoT", action='store_true', default=False, help="Whether to map the anchor concept to the EoT token representation")
     parser.add_argument("--mapLastSubjectToken", action='store_true', default=False, help="Whether to map the anchor concept to the last subject token representation instead of the EoT token when mapping2context is True")
     parser.add_argument("--anchor_EoT", action='store_true', default=False, help="Whether to use the EoT token as the anchor representation when mapping2context is False")
+    
+    parser.add_argument("--erasetype", type=str, default="instance", choices=["instance", "style"], help="The type of erasure to perform, which determines the prompt templates used for mapping.")
+    parser.add_argument("--mapAll", action='store_true', default=False, help="Whether to map the anchor concept using all templates (averaging their representations) when mapping2context is True")
+    parser.add_argument("--mapMean", action='store_true', default=False, help="Whether to map the anchor concept using the mean representation of all templates when mapping2context is True (overrides mapAll if both are set)")
+
     args = parser.parse_args()
     print("[Arguments]")
     for key, value in vars(args).items():

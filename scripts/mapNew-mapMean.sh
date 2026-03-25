@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 trim_spaces() {
     s="$1"
@@ -18,7 +18,7 @@ prompts_csv='/path/to/prompts.csv'
 
 ##### instance #####
 # for target_concepts in "Monet"; do
-for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
+for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Snoopy, Mickey" "Snoopy" "Picasso" "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -60,9 +60,9 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Va
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --enable_dynamic_mask \
-        --mask_topk_count 15 \
-        --mapping2context
+        --mapping2context \
+        --erasetype "instance" \
+        --mapMean
 
 
     edit_ckpt=$(cat "${ckpt_meta}")

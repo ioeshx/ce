@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 
+# 再测一次speed的效果
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
@@ -17,7 +18,7 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-# for target_concepts in "Monet"; do
+# for target_concepts in "Picasso"; do
 for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Van Gogh" "Picasso" "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
@@ -59,9 +60,7 @@ for target_concepts in "Snoopy" "Snoopy, Mickey" "Snoopy, Mickey, Spongebob" "Va
         --header "concept" \
         --params V \
         --save_path ${save_path} \
-        --ckpt_path_file "${ckpt_meta}" \
-        --mapping2context \
-        --anchor_last_subject_token
+        --ckpt_path_file "${ckpt_meta}"
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
