@@ -61,7 +61,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Van Gogh" "Snoopy, Mickey" "
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
         --mapping2context \
-        --erasetype "instance" \
+        --erasetype "${erase_type}" \
         --mapAll
 
 

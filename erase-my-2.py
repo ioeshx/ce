@@ -19,7 +19,7 @@ from util.template import imagenet_templates, imagenet_templates_extend, imagene
 from util.context_template import context_templates, context_templates_no_in_style
 
 
-def seed_everything(seed, deterministic=False):
+def seed_everything(seed=0, deterministic=False):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -544,7 +544,7 @@ if __name__ == '__main__':
     parser.add_argument('--zero_anchor', action='store_true', default=False, help="Whether to use a zero vector as the anchor concept representation (only valid when mapping2context is False)")
     # attention-score-based dynamic masking
     parser.add_argument('--enable_dynamic_mask', action='store_true', default=False, help="Enable attention-map based layer scoring and masking")
-    parser.add_argument('--score_mode', type=str, default='absolute', choices=['absolute', 'residual'])
+    parser.add_argument('--score_mode', type=str, default='residual', choices=['absolute', 'residual'])
     parser.add_argument('--probe_steps', type=int, default=20, help="Total denoising steps used by probing")
     parser.add_argument('--window_start_ratio', type=float, default=0.3, help="Golden window start ratio in [0,1)")
     parser.add_argument('--window_end_ratio', type=float, default=0.6, help="Golden window end ratio in (0,1]")
