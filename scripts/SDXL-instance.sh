@@ -63,7 +63,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         --mapping2context \
         --erasetype "${erase_type}" \
         --mapMean \
-        --sd_ckpt sd2-community/stable-diffusion-2-1
+        --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0"
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
@@ -75,24 +75,27 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         --target_concept "${target_concepts}" \
         --contents "${contents}" \
         --edit_ckpt "${edit_ckpt}" \
-        --mode 'original, edit' \
-        --num_samples 10 --batch_size 10 \
+        --mode 'edit' \
         --save_root ${sample_save_root} \
         --total_timesteps 50 \
-        --sd_ckpt sd2-community/stable-diffusion-2-1 \
-        
+        --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
+        --num_samples 1 \
+        --batch_size 1
+        # --num_samples 1 --batch_size 1 \
 
-    echo "[INFO] Running sample2.py for coco 1k..."
-    python sample2.py \
-        --target_concept "${target_concepts}" \
-        --contents "coco" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'original, edit' \
-        --batch_size 16 \
-        --save_root ${sample_save_root} \
-        --total_timesteps 50 \
-        --sd_ckpt sd2-community/stable-diffusion-2-1 \
-        # --coco_max_num 100
+    # echo "[INFO] Running sample2.py for coco 1k..."
+    # python sample2.py \
+    #     --target_concept "${target_concepts}" \
+    #     --contents "coco" \
+    #     --edit_ckpt "${edit_ckpt}" \
+    #     --mode 'edit' \
+    #     --batch_size 4 \
+    #     --save_root ${sample_save_root} \
+    #     --total_timesteps 50 \
+    #     --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
+    #     # --num_samples 1 \
+    #     # --batch_size 1
+    #     # --coco_max_num 100
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
@@ -135,51 +138,51 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         fi
 
         echo "[INFO] Benchmarking content: ${content}"
-        python "${benchmark_py}" \
-            --metrics lpips aesthetic \
-            --images-root "${image_root}" \
-            --fid-ref "${fid_ref}" \
-            --prompts-csv "${prompts_csv}" \
-            --lpips-original "${lpips_original}" \
-            --lpips-edited "${lpips_edited}" \
-            --output-json "${output_json}" \
-            --prompt_from_filename
-            # --metrics fid clip lpips aesthetic \
-        python util/clip_score_cal.py \
-            --contents "${content}" \
-            --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/" \
-            --version "openai/clip-vit-large-patch14"
+        # python "${benchmark_py}" \
+        #     --metrics lpips aesthetic \
+        #     --images-root "${image_root}" \
+        #     --fid-ref "${fid_ref}" \
+        #     --prompts-csv "${prompts_csv}" \
+        #     --lpips-original "${lpips_original}" \
+        #     --lpips-edited "${lpips_edited}" \
+        #     --output-json "${output_json}" \
+        #     --prompt_from_filename
+        #     # --metrics fid clip lpips aesthetic \
+        # python util/clip_score_cal.py \
+        #     --contents "${content}" \
+        #     --root_path "${images_root_candidate}/" \
+        #     --pretrained_path "${images_root_candidate}/" \
+        #     --version "openai/clip-vit-large-patch14"
     done
         set +f
         IFS="$old_ifs"
 
 
-    echo "[INFO] Benchmarking coco 1k from sample2.py..."
-    coco_content="coco"
-    image_root="${images_root_candidate}/${coco_content}/edit"
-    fid_ref="${images_root_candidate}/${coco_content}/original"
-    lpips_original="${images_root_candidate}/${coco_content}/original"
-    lpips_edited="${images_root_candidate}/${coco_content}/edit"
-    output_json="${images_root_candidate}/${coco_content}/summary.json"
+    # echo "[INFO] Benchmarking coco 1k from sample2.py..."
+    # coco_content="coco"
+    # image_root="${images_root_candidate}/${coco_content}/edit"
+    # fid_ref="${images_root_candidate}/${coco_content}/original"
+    # lpips_original="${images_root_candidate}/${coco_content}/original"
+    # lpips_edited="${images_root_candidate}/${coco_content}/edit"
+    # output_json="${images_root_candidate}/${coco_content}/summary.json"
 
-    if [ ! -d "${lpips_original}" ] || [ ! -d "${lpips_edited}" ]; then
-        echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
-    else
-        echo "[INFO] Benchmarking content: ${coco_content}"
-        python "${benchmark_py}" \
-            --metrics lpips aesthetic \
-            --images-root "${image_root}" \
-            --lpips-original "${lpips_original}" \
-            --lpips-edited "${lpips_edited}" \
-            --output-json "${output_json}"
-        python util/clip_score_cal.py \
-            --contents "coco" \
-            --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/" \
-            --version "openai/clip-vit-large-patch14"
+    # if [ ! -d "${lpips_original}" ] || [ ! -d "${lpips_edited}" ]; then
+    #     echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
+    # else
+    #     echo "[INFO] Benchmarking content: ${coco_content}"
+    #     python "${benchmark_py}" \
+    #         --metrics lpips aesthetic \
+    #         --images-root "${image_root}" \
+    #         --lpips-original "${lpips_original}" \
+    #         --lpips-edited "${lpips_edited}" \
+    #         --output-json "${output_json}"
+    #     python util/clip_score_cal.py \
+    #         --contents "coco" \
+    #         --root_path "${images_root_candidate}/" \
+    #         --pretrained_path "${images_root_candidate}/" \
+    #         --version "openai/clip-vit-large-patch14"
 
-    fi
+    # fi
 done
 
 
