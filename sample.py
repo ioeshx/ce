@@ -70,6 +70,7 @@ def main():
     parser.add_argument('--target_concept', type=str, default='')
     parser.add_argument('--contents', type=str, default='')
     parser.add_argument('--edit_ckpt', type=str, default=None)
+    parser.add_argument("--disable_fixed_seed", action='store_true', default=False, help="Disable fixed seed for sampling.")
     args = parser.parse_args()
     assert args.num_samples >= args.batch_size and args.num_samples % args.batch_size == 0, "num_samples should be a multiple of batch_size."
     print("[Arguments]")
@@ -108,7 +109,9 @@ def main():
     uncond_embedding = get_textencoding(get_token('', tokenizer), text_encoder)
 
     # Sampling process
-    seed_everything(args.seed, True)
+    if not args.disable_fixed_seed:
+        seed_everything(args.seed, True)
+    
     if args.prompts is None:
         prompt_list = [[x.format(concept) for x in template_dict[args.erase_type]] for concept in concept_list]
     else:

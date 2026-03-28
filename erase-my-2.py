@@ -47,6 +47,25 @@ def get_subject_token_indices(tokenized_inputs, use_all_tokens=False):
     return [max(valid_len - 2, 0)]
 
 
+def infer_text_embed_dim(pipeline):
+    # SD1.x uses 768 while SD2.x uses 1024; infer from model config when possible.
+    text_encoder = getattr(pipeline, "text_encoder", None)
+    if text_encoder is not None and hasattr(text_encoder, "config"):
+        hidden_size = getattr(text_encoder.config, "hidden_size", None)
+        if hidden_size is not None:
+            return int(hidden_size)
+
+    unet = getattr(pipeline, "unet", None)
+    if unet is not None and hasattr(unet, "config"):
+        cross_dim = getattr(unet.config, "cross_attention_dim", None)
+        if isinstance(cross_dim, int):
+            return int(cross_dim)
+        if isinstance(cross_dim, (list, tuple)) and len(cross_dim) > 0 and isinstance(cross_dim[0], int):
+            return int(cross_dim[0])
+
+    raise ValueError("Failed to infer text embedding dim from pipeline. Please verify the SD checkpoint.")
+
+
 class CrossAttentionScoreProbe:
     class ScoreCaptureProcessor:
         def __init__(self, layer_name, base_processor, token_indices, score_cache, active_getter):
@@ -260,6 +279,16 @@ def build_layer_gammas(edit_dict, raw_scores, mask_strategy='top_k', topk_ratio=
 
     return gammas
 
+
+def print_formatted_keys(title, keys):
+    keys = sorted(list(keys))
+    print(f"\n[{title}] total={len(keys)}")
+    if len(keys) == 0:
+        print("  (none)")
+        return
+    for idx, key in enumerate(keys, 1):
+        print(f"  {idx:03d}. {key}")
+
 # Speed专属
 def generate_perturbed_embs(ret_embs, P, erase_weight, num_per_sample, mini_batch=8):
     ret_embs = ret_embs.squeeze(1)
@@ -277,9 +306,11 @@ def generate_perturbed_embs(ret_embs, P, erase_weight, num_per_sample, mini_batc
 
 
 @torch.no_grad()
-def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, baseline=None, chunk_size=128, emb_size=768, device="cuda"):
+def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, baseline=None, chunk_size=128, emb_size=None, device="cuda"):
 
     # decide which matrix to edit and prepare null inputs
+    emb_size = emb_size or infer_text_embed_dim(pipeline)
+    print(f"[Model Config] inferred text embedding dim = {emb_size}")
     I = torch.eye(emb_size, device=device)
     if args.params == 'KV':
         edit_dict = {k: v for k, v in pipeline.unet.state_dict().items() if 'attn2.to_k' in k or 'attn2.to_v' in k}
@@ -287,6 +318,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         edit_dict = {k: v for k, v in pipeline.unet.state_dict().items() if 'attn2.to_v' in k}
     elif args.params == 'K':
         edit_dict = {k: v for k, v in pipeline.unet.state_dict().items() if 'attn2.to_k' in k}
+    
 
     if args.enable_dynamic_mask:
         print("[Dynamic Mask] Probing cross-attention scores in golden window...")
@@ -310,11 +342,13 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     else:
         layer_gamma = {k.rsplit('.to_', 1)[0]: 1.0 for k in edit_dict.keys()}
 
+    print_formatted_keys("Editable weight keys (from state_dict)", edit_dict.keys())
+
     if baseline in ['SPEED']:
         null_inputs = get_token_id('', pipeline.tokenizer, return_ids_only=False)
-        null_hidden = pipeline.text_encoder(null_inputs.input_ids.to(device)).last_hidden_state[0] # [0] index -> [77, 768]
-        cluster_ids, cluster_centers = kmeans(X=null_hidden[1:], num_clusters=3, distance='euclidean', device='cuda')
-        K2 = torch.cat([null_hidden[[0], :], cluster_centers.to(device)], dim=0).T # shape: [768, 4]
+        null_hidden = pipeline.text_encoder(null_inputs.input_ids.to(device)).last_hidden_state[0] # [0] index -> [seq_len, emb_size]
+        cluster_ids, cluster_centers = kmeans(X=null_hidden[1:], num_clusters=3, distance='euclidean', device=str(device))
+        K2 = torch.cat([null_hidden[[0], :], cluster_centers.to(device)], dim=0).T # shape: [emb_size, 4]
         I2 = torch.eye(len(K2.T), device=device) # shape: [4, 4]
         print("k2 shape: ", K2.shape)
         print("I2 shape: ", I2.shape)
@@ -329,9 +363,9 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     all_anchor_embs_list = [] # 【新增】专门记录 anchor
     for i in range(0, len(target_concepts)):
         target_inputs = get_token_id(target_concepts[i], pipeline.tokenizer, return_ids_only=False)
-        target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+        target_embs = pipeline.text_encoder(target_inputs.input_ids.to(device)).last_hidden_state[0] # [seq_len, emb_size]
         anchor_inputs = get_token_id(anchor_concepts[i], pipeline.tokenizer, return_ids_only=False)
-        anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
+        anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [seq_len, emb_size]
         
         # print tokens
         anchor_valid_len = int(anchor_inputs.attention_mask[0].sum().item())
@@ -348,11 +382,11 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             print("Using all tokens for target.")
             target_embs = target_embs[0:(target_inputs.attention_mask[0].sum().item() - 1), :]  # all subject tokens [num_valid_tokens, 768]
         else:
-            target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
+            target_embs = target_embs[[(target_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1, emb_size]
             if args.anchor_EoT:
-                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]  # EoT token [1,768]
+                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]  # EoT token [1, emb_size]
             else:
-                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
+                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1, emb_size]
 
         # if args.zero_anchor:
         #     print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
@@ -379,8 +413,8 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                 # anchor_prompt = current_template[j].format(anchor_concepts[i])
                 anchor_prompt = current_template[j].format(anchor_concepts[i]) # if '{}' in current_template[j] else anchor_concepts[i]
                 anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
-                anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]
-                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1,768]
+                anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [seq_len, emb_size]
+                anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1, emb_size]
                 anchor_embs_list.append(anchor_embs)
 
                 # if target_concepts == ['nudity']:
@@ -409,10 +443,10 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         all_anchor_embs_list.append(anchor_embs) # 【新增】
         sum_target_target.append(target_embs.T @ target_embs)
         sum_anchor_target.append(anchor_embs.T @ target_embs)
-    ## 这里用了平均，shape of both: [768, 768]
+    ## 这里用了平均，shape of both: [emb_size, emb_size]
     sum_target_target, sum_anchor_target = torch.stack(sum_target_target).mean(0), torch.stack(sum_anchor_target).mean(0)
     # 【新增】构建 C1 与 C_null 矩阵
-    # 按照公式，将单个 [1, 768] 的特征堆叠翻转成 [768, num_targets] 以进行矩阵乘法
+    # 按照公式，将单个 [1, emb_size] 的特征堆叠翻转成 [emb_size, num_targets] 以进行矩阵乘法
     C1 = torch.cat(all_target_embs_list, dim=0).T 
     C_null = torch.cat(all_anchor_embs_list, dim=0).T
     # endregion
@@ -426,12 +460,12 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     assert len(retain_texts) + len(target_concepts) == len(set(retain_texts + target_concepts)) # 保证不重合
     for j in range(0, len(retain_texts), chunk_size):
         ret_inputs = get_token_id(retain_texts[j:j + chunk_size], pipeline.tokenizer, return_ids_only=False)
-        ret_embs = pipeline.text_encoder(ret_inputs.input_ids.to(device)).last_hidden_state # [chunk_size, 77, 768]
+        ret_embs = pipeline.text_encoder(ret_inputs.input_ids.to(device)).last_hidden_state # [chunk_size, seq_len, emb_size]
         if retain_texts == ['']:
-            last_ret_embs.append(ret_embs[:, 1:, :].permute(1, 0, 2))   # shape: [76, 1, 768]
+            last_ret_embs.append(ret_embs[:, 1:, :].permute(1, 0, 2))   # shape: [seq_len-1, 1, emb_size]
         else:
             last_subject_indices = ret_inputs.attention_mask.sum(1) - 2
-            last_ret_embs.append(ret_embs[torch.arange(ret_embs.size(0)), last_subject_indices].unsqueeze(1)) # shape: [chunk_size, 1, 768]
+            last_ret_embs.append(ret_embs[torch.arange(ret_embs.size(0)), last_subject_indices].unsqueeze(1)) # shape: [chunk_size, 1, emb_size]
     last_ret_embs = torch.cat(last_ret_embs)
     last_ret_embs = last_ret_embs[torch.randperm(last_ret_embs.size(0))]  # shuffle, shape [total_retain_num, 1, 768]
 
@@ -441,6 +475,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
     else:
         print("No IPF or DPA")
     
+    modified_weight_keys = []
     for (layer_name, layer_weight) in tqdm(edit_dict.items(), desc="Model Editing"):
 
         erase_weight = layer_weight @ (sum_anchor_target - sum_target_target) @ (I + sum_target_target).inverse()        
@@ -500,9 +535,13 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
 
         gamma = layer_gamma.get(layer_name.rsplit('.to_', 1)[0], 0.0)
         delta_weight = delta_weight * gamma
+
+        if gamma > 0:
+            modified_weight_keys.append(layer_name)
         
         edit_dict[layer_name] = layer_weight + delta_weight
 
+    print_formatted_keys("Modified weight keys (gamma > 0)", modified_weight_keys)
     print(f"Current model status: Edited {str(target_concepts)} into {str(anchor_concepts)}")
     return edit_dict
 
