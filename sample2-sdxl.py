@@ -51,6 +51,8 @@ def main():
 
     bs = args.batch_size
     mode_list = args.mode.replace(' ', '').split(',')
+    only_original = mode_list == ['original']
+    only_edit = mode_list == ['edit']
 
     # region [Prepare Models]
     try:
@@ -58,9 +60,14 @@ def main():
     except Exception:
         pipe = DiffusionPipeline.from_pretrained(args.sd_ckpt, torch_dtype=torch.float16).to('cuda')
     pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
-    if 'edit' in mode_list:
+    if only_edit:
+        pipe.unet.load_state_dict(torch.load(args.edit_ckpt, map_location='cpu'), strict=False)
+        pipe_edit = None
+    elif 'edit' in mode_list:
         pipe_edit = copy.deepcopy(pipe)
         pipe_edit.unet.load_state_dict(torch.load(args.edit_ckpt, map_location='cpu'), strict=False)
+    else:
+        pipe_edit = None
     # endregion
 
     # Sampling process
@@ -90,8 +97,9 @@ def main():
                     guidance=args.guidance_scale,
                 )
             if 'edit' in mode_list:
+                edit_pipe = pipe if only_edit else pipe_edit
                 save_images['edit'] = generate_images(
-                    pipe=pipe_edit,
+                    pipe=edit_pipe,
                     prompts=batch_prompts,
                     steps=args.total_timesteps,
                     guidance=args.guidance_scale,

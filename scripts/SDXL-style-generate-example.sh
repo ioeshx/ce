@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 trim_spaces() {
     s="$1"
@@ -18,7 +18,8 @@ prompts_csv='/path/to/prompts.csv'
 
 ##### instance #####
 # for target_concepts in "Snoopy, Mickey"; do
-for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
+# for target_concepts in "Van Gogh" "Picasso" "Monet"; do
+for target_concepts in "Van Gogh"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -52,48 +53,49 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
 
     ckpt_meta=$(mktemp)
 
-    python erase-sdxl.py \
-        --target_concepts "${target_concepts}" \
-        --anchor_concepts "${anchor_concepts}" \
-        --retain_path "${retain_path}" \
-        --header "concept" \
-        --params V \
-        --save_path ${save_path} \
-        --ckpt_path_file "${ckpt_meta}" \
-        --mapping2context \
-        --erasetype "${erase_type}" \
-        --mapMean \
-        --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0"
+    # python erase-sdxl.py \
+    #     --target_concepts "${target_concepts}" \
+    #     --anchor_concepts "${anchor_concepts}" \
+    #     --retain_path "${retain_path}" \
+    #     --header "concept" \
+    #     --params V \
+    #     --save_path ${save_path} \
+    #     --ckpt_path_file "${ckpt_meta}" \
+    #     --mapping2context \
+    #     --erasetype "${erase_type}" \
+    #     --mapMean \
+    #     --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0"
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
     rm -f "${ckpt_meta}"
 
-    echo "[INFO] Running sample.py for instance..."
+    # echo "[INFO] Running sample.py for instance..."
+    # python sample-sdxl.py \
+    #     --erase_type "${erase_type}" \
+    #     --target_concept "${target_concepts}" \
+    #     --contents "${contents}" \
+    #     --edit_ckpt "${edit_ckpt}" \
+    #     --mode 'edit' \
+    #     --save_root ${sample_save_root} \
+    #     --total_timesteps 50 \
+    #     --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
+    #     --num_samples 1 \
+    #     --batch_size 1
+    
+    contents="no artist"
+    # generate original samples for reference
     python sample-sdxl.py \
         --erase_type "${erase_type}" \
         --target_concept "${target_concepts}" \
         --contents "${contents}" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'edit' \
-        --save_root ${sample_save_root} \
-        --total_timesteps 50 \
-        --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-        --num_samples 1 \
-        --batch_size 1
-        # --num_samples 1 --batch_size 1 \
-
-    python sample-sdxl.py \
-        --erase_type "${erase_type}" \
-        --target_concept "${target_concepts}" \
-        --contents "${contents}" \
-        --edit_ckpt "${edit_ckpt}" \
         --mode 'original' \
         --save_root ${sample_save_root} \
         --total_timesteps 50 \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
         --num_samples 1 \
         --batch_size 1
+        # --num_samples 1 --batch_size 1 \
 
     # echo "[INFO] Running sample2.py for coco 1k..."
     # python sample2-sdxl.py \
@@ -196,7 +198,6 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
 
     # fi
 done
-
 
 end_seconds=$(date +%s)
 total_seconds=$((end_seconds - start_seconds))

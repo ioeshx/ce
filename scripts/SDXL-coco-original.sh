@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 trim_spaces() {
     s="$1"
@@ -18,7 +18,7 @@ prompts_csv='/path/to/prompts.csv'
 
 ##### instance #####
 # for target_concepts in "Snoopy, Mickey"; do
-for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
+for target_concepts in "CIFAR100"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -30,9 +30,14 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         contents="Mickey, Snoopy, Spongebob, Pikachu, Hello Kitty"
     elif [ "$target_concepts" = "bed" ] || [ "$target_concepts" = "smartphone" ] || [ "$target_concepts" = "apple" ] || [ "$target_concepts" = "car" ] || [ "$target_concepts" = "book" ]; then
         anchor_concepts=""
-        erase_type="object"
+        erase_type="instance"
         retain_path="data/object.csv"
         contents="bed, smartphone, apple, car, book"
+    elif [ "$target_concepts" = "CIFAR100" ]; then
+        anchor_concepts=""
+        erase_type="instance"
+        retain_path="data/instance.csv"
+        contents="apple"
     else
         anchor_concepts="art"
         erase_type="style"
@@ -69,31 +74,31 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
     edit_ckpt=$(cat "${ckpt_meta}")
     rm -f "${ckpt_meta}"
 
-    echo "[INFO] Running sample.py for instance..."
-    python sample-sdxl.py \
-        --erase_type "${erase_type}" \
-        --target_concept "${target_concepts}" \
-        --contents "${contents}" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'edit' \
-        --save_root ${sample_save_root} \
-        --total_timesteps 50 \
-        --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-        --num_samples 1 \
-        --batch_size 1
-        # --num_samples 1 --batch_size 1 \
+    # echo "[INFO] Running sample.py for instance..."
+    # python sample-sdxl.py \
+    #     --erase_type "${erase_type}" \
+    #     --target_concept "${target_concepts}" \
+    #     --contents "${contents}" \
+    #     --edit_ckpt "${edit_ckpt}" \
+    #     --mode 'edit' \
+    #     --save_root ${sample_save_root} \
+    #     --total_timesteps 50 \
+    #     --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
+    #     --num_samples 1 \
+    #     --batch_size 1
+    #     # --num_samples 1 --batch_size 1 \
 
-    python sample-sdxl.py \
-        --erase_type "${erase_type}" \
-        --target_concept "${target_concepts}" \
-        --contents "${contents}" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'original' \
-        --save_root ${sample_save_root} \
-        --total_timesteps 50 \
-        --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-        --num_samples 1 \
-        --batch_size 1
+    # python sample-sdxl.py \
+    #     --erase_type "${erase_type}" \
+    #     --target_concept "${target_concepts}" \
+    #     --contents "${contents}" \
+    #     --edit_ckpt "${edit_ckpt}" \
+    #     --mode 'original' \
+    #     --save_root ${sample_save_root} \
+    #     --total_timesteps 50 \
+    #     --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
+    #     --num_samples 1 \
+    #     --batch_size 1
 
     # echo "[INFO] Running sample2.py for coco 1k..."
     # python sample2-sdxl.py \
@@ -101,13 +106,25 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
     #     --contents "coco" \
     #     --edit_ckpt "${edit_ckpt}" \
     #     --mode 'edit' \
-    #     --batch_size 4 \
     #     --save_root ${sample_save_root} \
     #     --total_timesteps 50 \
     #     --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-    #     # --num_samples 1 \
+    #     --coco_max_num 100 \
     #     # --batch_size 1
-    #     # --coco_max_num 100
+    #     # --num_samples 1 \
+
+    python sample2-sdxl.py \
+        --target_concept "${target_concepts}" \
+        --contents "coco" \
+        --edit_ckpt "${edit_ckpt}" \
+        --mode 'original' \
+        --batch_size 4 \
+        --save_root ${sample_save_root} \
+        --total_timesteps 50 \
+        --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
+        --coco_max_num 100 \
+        # --batch_size 1
+        # --num_samples 1 \
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
@@ -149,52 +166,51 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
             continue
         fi
 
-        echo "[INFO] Benchmarking content: ${content}"
-        python "${benchmark_py}" \
-            --metrics lpips aesthetic \
-            --images-root "${image_root}" \
-            --fid-ref "${fid_ref}" \
-            --prompts-csv "${prompts_csv}" \
-            --lpips-original "${lpips_original}" \
-            --lpips-edited "${lpips_edited}" \
-            --output-json "${output_json}" \
-            --prompt_from_filename
-            # --metrics fid clip lpips aesthetic \
-        python util/clip_score_cal.py \
-            --contents "${content}" \
-            --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/" \
-            --version "openai/clip-vit-large-patch14"
+        # echo "[INFO] Benchmarking content: ${content}"
+        # python "${benchmark_py}" \
+        #     --metrics lpips aesthetic \
+        #     --images-root "${image_root}" \
+        #     --fid-ref "${fid_ref}" \
+        #     --prompts-csv "${prompts_csv}" \
+        #     --lpips-original "${lpips_original}" \
+        #     --lpips-edited "${lpips_edited}" \
+        #     --output-json "${output_json}" \
+        #     --prompt_from_filename
+        #     # --metrics fid clip lpips aesthetic \
+        # python util/clip_score_cal.py \
+        #     --contents "${content}" \
+        #     --root_path "${images_root_candidate}/" \
+        #     --pretrained_path "${images_root_candidate}/" \
+        #     --version "openai/clip-vit-large-patch14"
     done
         set +f
         IFS="$old_ifs"
 
 
-    # echo "[INFO] Benchmarking coco 1k from sample2.py..."
-    # coco_content="coco"
-    # image_root="${images_root_candidate}/${coco_content}/edit"
-    # fid_ref="${images_root_candidate}/${coco_content}/original"
-    # lpips_original="${images_root_candidate}/${coco_content}/original"
-    # lpips_edited="${images_root_candidate}/${coco_content}/edit"
-    # output_json="${images_root_candidate}/${coco_content}/summary.json"
+    echo "[INFO] Benchmarking coco 1k from sample2.py..."
+    coco_content="coco"
+    image_root="${images_root_candidate}/${coco_content}/edit"
+    fid_ref="${images_root_candidate}/${coco_content}/original"
+    lpips_original="${images_root_candidate}/${coco_content}/original"
+    lpips_edited="${images_root_candidate}/${coco_content}/edit"
+    output_json="${images_root_candidate}/${coco_content}/summary.json"
 
-    # if [ ! -d "${lpips_original}" ] || [ ! -d "${lpips_edited}" ]; then
-    #     echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
-    # else
-    #     echo "[INFO] Benchmarking content: ${coco_content}"
-    #     python "${benchmark_py}" \
-    #         --metrics lpips aesthetic \
-    #         --images-root "${image_root}" \
-    #         --lpips-original "${lpips_original}" \
-    #         --lpips-edited "${lpips_edited}" \
-    #         --output-json "${output_json}"
-    #     python util/clip_score_cal.py \
-    #         --contents "coco" \
-    #         --root_path "${images_root_candidate}/" \
-    #         --pretrained_path "${images_root_candidate}/" \
-    #         --version "openai/clip-vit-large-patch14"
-
-    # fi
+    if [ ! -d "${lpips_original}" ] || [ ! -d "${lpips_edited}" ]; then
+        echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
+    else
+        echo "[INFO] Benchmarking content: ${coco_content}"
+        # python "${benchmark_py}" \
+        #     --metrics lpips aesthetic \
+        #     --images-root "${image_root}" \
+        #     --lpips-original "${lpips_original}" \
+        #     --lpips-edited "${lpips_edited}" \
+        #     --output-json "${output_json}"
+        # python util/clip_score_cal.py \
+        #     --contents "coco" \
+        #     --root_path "${images_root_candidate}/" \
+        #     --pretrained_path "${images_root_candidate}/" \
+        #     --version "openai/clip-vit-large-patch14"
+    fi
 done
 
 
