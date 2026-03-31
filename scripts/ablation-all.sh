@@ -163,7 +163,7 @@ for target_concepts in "Snoopy"; do
     if [ ! -d "${lpips_original}" ] || [ ! -d "${lpips_edited}" ]; then
         echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
     else
-        # echo "[INFO] Benchmarking content: ${coco_content}"
+        echo "[INFO] Benchmarking content: ${coco_content}"
         # python "${benchmark_py}" \
         #     --metrics lpips aesthetic \
         #     --images-root "${image_root}" \
