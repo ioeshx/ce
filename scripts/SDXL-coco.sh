@@ -107,10 +107,10 @@ for target_concepts in "CIFAR100"; do
         --edit_ckpt "${edit_ckpt}" \
         --mode 'edit' \
         --save_root ${sample_save_root} \
-        --total_timesteps 50 \
+        --total_timesteps 20 \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-        --coco_max_num 100 \
         --batch_size 2
+        # --coco_max_num 100 \
         # --num_samples 1 \
 
     python sample2-sdxl.py \
@@ -120,10 +120,10 @@ for target_concepts in "CIFAR100"; do
         --mode 'original' \
         --batch_size 4 \
         --save_root ${sample_save_root} \
-        --total_timesteps 50 \
+        --total_timesteps 20 \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-        --coco_max_num 1000 \
         --batch_size 2
+        # --coco_max_num 1000 \
         # --num_samples 1 \
 
     # Expected structure:

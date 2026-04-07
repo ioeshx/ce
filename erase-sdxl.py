@@ -425,12 +425,12 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         anchor_embs = anchor_hidden[0] # [seq_len, emb_size]
         
         # print tokens
-        anchor_valid_len = int(anchor_inputs.attention_mask[0].sum().item())
-        anchor_ids = anchor_inputs.input_ids[0][:anchor_valid_len].tolist()
-        anchor_tokens = pipeline.tokenizer.convert_ids_to_tokens(anchor_ids)
-        print(f"[Anchor Tokens] concept='{anchor_concepts[i]}', valid_token_len={anchor_valid_len}")
-        for pos, (tok_id, tok_str) in enumerate(zip(anchor_ids, anchor_tokens)):
-            print(f"  pos={pos:02d} id={tok_id:<6} token={tok_str}")
+        # anchor_valid_len = int(anchor_inputs.attention_mask[0].sum().item())
+        # anchor_ids = anchor_inputs.input_ids[0][:anchor_valid_len].tolist()
+        # anchor_tokens = pipeline.tokenizer.convert_ids_to_tokens(anchor_ids)
+        # print(f"[Anchor Tokens] concept='{anchor_concepts[i]}', valid_token_len={anchor_valid_len}")
+        # for pos, (tok_id, tok_str) in enumerate(zip(anchor_ids, anchor_tokens)):
+        #     print(f"  pos={pos:02d} id={tok_id:<6} token={tok_str}")
         
         if target_concepts == ['nudity']:
             target_embs = target_embs[1:, :]  # all tokens
@@ -499,7 +499,7 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             elif args.mapMean:
                 anchor_embs = torch.stack(anchor_embs_list, dim=0).mean(dim=0).mean(dim=0, keepdim=True)  # average over templates
                 
-            print("anchor shape:", anchor_embs.shape, "target shape:", target_embs.shape)
+            # print("anchor shape:", anchor_embs.shape, "target shape:", target_embs.shape)
         all_target_embs_list.append(target_embs)
         all_anchor_embs_list.append(anchor_embs) # 【新增】
         sum_target_target.append(target_embs.T @ target_embs)
