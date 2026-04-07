@@ -463,7 +463,11 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         
         if args.mapping2context:
             print("Mapping to prompt context.")
-            current_template = imagenet_templates if args.erasetype == "instance" else painting_templates # context_templates_no_in_style[target_concepts[i]]
+            if args.erasetype == "instance" or args.erasetype == "object": 
+                current_template = imagenet_templates 
+            else:
+                current_template = painting_templates
+            
             anchor_embs_list = []
             for j in range(0, len(current_template)):
                 # anchor_prompt = current_template[j].replace("{}", "")
