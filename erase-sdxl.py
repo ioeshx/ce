@@ -548,7 +548,6 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             layer_ret_embs = last_ret_embs[weight_norm_init > weight_norm_init.mean()]
         else:
              layer_ret_embs = last_ret_embs
-        layer_ret_embs = last_ret_embs
         
         # retain矩阵也是取平均的方式进行编辑
         sum_ret_ret, valid_num = [], 0
