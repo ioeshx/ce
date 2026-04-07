@@ -100,18 +100,18 @@ for target_concepts in "CIFAR100"; do
     #     --num_samples 1 \
     #     --batch_size 1
 
-    # echo "[INFO] Running sample2.py for coco 1k..."
-    # python sample2-sdxl.py \
-    #     --target_concept "${target_concepts}" \
-    #     --contents "coco" \
-    #     --edit_ckpt "${edit_ckpt}" \
-    #     --mode 'edit' \
-    #     --save_root ${sample_save_root} \
-    #     --total_timesteps 50 \
-    #     --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-    #     --coco_max_num 100 \
-    #     # --batch_size 1
-    #     # --num_samples 1 \
+    echo "[INFO] Running sample2.py for coco 1k..."
+    python sample2-sdxl.py \
+        --target_concept "${target_concepts}" \
+        --contents "coco" \
+        --edit_ckpt "${edit_ckpt}" \
+        --mode 'edit' \
+        --save_root ${sample_save_root} \
+        --total_timesteps 50 \
+        --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
+        --coco_max_num 100 \
+        --batch_size 2
+        # --num_samples 1 \
 
     python sample2-sdxl.py \
         --target_concept "${target_concepts}" \
@@ -122,8 +122,8 @@ for target_concepts in "CIFAR100"; do
         --save_root ${sample_save_root} \
         --total_timesteps 50 \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-        --coco_max_num 100 \
-        # --batch_size 1
+        --coco_max_num 1000 \
+        --batch_size 2
         # --num_samples 1 \
 
     # Expected structure:
@@ -166,7 +166,7 @@ for target_concepts in "CIFAR100"; do
             continue
         fi
 
-        # echo "[INFO] Benchmarking content: ${content}"
+        echo "[INFO] Benchmarking content: ${content}"
         # python "${benchmark_py}" \
         #     --metrics lpips aesthetic \
         #     --images-root "${image_root}" \
@@ -199,17 +199,17 @@ for target_concepts in "CIFAR100"; do
         echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
     else
         echo "[INFO] Benchmarking content: ${coco_content}"
-        # python "${benchmark_py}" \
-        #     --metrics lpips aesthetic \
-        #     --images-root "${image_root}" \
-        #     --lpips-original "${lpips_original}" \
-        #     --lpips-edited "${lpips_edited}" \
-        #     --output-json "${output_json}"
-        # python util/clip_score_cal.py \
-        #     --contents "coco" \
-        #     --root_path "${images_root_candidate}/" \
-        #     --pretrained_path "${images_root_candidate}/" \
-        #     --version "openai/clip-vit-large-patch14"
+        python "${benchmark_py}" \
+            --metrics lpips aesthetic \
+            --images-root "${image_root}" \
+            --lpips-original "${lpips_original}" \
+            --lpips-edited "${lpips_edited}" \
+            --output-json "${output_json}"
+        python util/clip_score_cal.py \
+            --contents "coco" \
+            --root_path "${images_root_candidate}/" \
+            --pretrained_path "${images_root_candidate}/" \
+            --version "openai/clip-vit-large-patch14"
     fi
 done
 
