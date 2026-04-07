@@ -77,10 +77,10 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         --edit_ckpt "${edit_ckpt}" \
         --mode 'edit' \
         --save_root ${sample_save_root} \
-        --total_timesteps 50 \
+        --total_timesteps 20 \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-        --num_samples 1 \
-        --batch_size 1
+        --num_samples 10 \
+        --batch_size 2
         # --num_samples 1 --batch_size 1 \
 
     python sample-sdxl.py \
@@ -92,8 +92,8 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         --save_root ${sample_save_root} \
         --total_timesteps 50 \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
-        --num_samples 1 \
-        --batch_size 1
+        --num_samples 10 \
+        --batch_size 2
 
     # echo "[INFO] Running sample2.py for coco 1k..."
     # python sample2-sdxl.py \
