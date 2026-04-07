@@ -37,7 +37,7 @@ for target_concepts in "CIFAR100"; do
         anchor_concepts=""
         erase_type="instance"
         retain_path="data/instance.csv"
-        contents="apple"
+        contents="coco"
     else
         anchor_concepts="art"
         erase_type="style"

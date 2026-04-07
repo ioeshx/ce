@@ -138,7 +138,8 @@ def main():
                 def combine_images_horizontally(Images):
                     widths, heights = zip(*(img.size for img in Images))
                     new_img = Image.new('RGB', (sum(widths), max(heights)))
-                    for i, img in enumerate(Images): new_img.paste(img, (sum(widths[:i]), 0))
+                    for i, img in enumerate(Images): 
+                        new_img.paste(img, (sum(widths[:i]), 0))
                     return new_img
                 for idx in range(len(decoded_imgs[mode_list[0]])):
                     save_filename = re.sub(r'[^\w\s]', '', prompt).replace(', ', '_') + f"_{int(idx + bs * i)}.png"
