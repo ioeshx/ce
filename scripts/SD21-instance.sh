@@ -17,7 +17,8 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
+# "Snoopy, Mickey" "Snoopy"
+for target_concepts in "Snoopy, Mickey, Spongebob" ; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -49,36 +50,36 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
     save_path="ckpt/${script_name}_${erase_type}"
     sample_save_root="result/${script_name}_${erase_type}"
 
-    ckpt_meta=$(mktemp)
+    # ckpt_meta=$(mktemp)
 
-    python erase-my-2.py \
-        --target_concepts "${target_concepts}" \
-        --anchor_concepts "${anchor_concepts}" \
-        --retain_path "${retain_path}" \
-        --header "concept" \
-        --params V \
-        --save_path ${save_path} \
-        --ckpt_path_file "${ckpt_meta}" \
-        --mapping2context \
-        --erasetype "${erase_type}" \
-        --mapMean \
-        --sd_ckpt sd2-community/stable-diffusion-2-1
+    # python erase-my-2.py \
+    #     --target_concepts "${target_concepts}" \
+    #     --anchor_concepts "${anchor_concepts}" \
+    #     --retain_path "${retain_path}" \
+    #     --header "concept" \
+    #     --params V \
+    #     --save_path ${save_path} \
+    #     --ckpt_path_file "${ckpt_meta}" \
+    #     --mapping2context \
+    #     --erasetype "${erase_type}" \
+    #     --mapMean \
+    #     --sd_ckpt sd2-community/stable-diffusion-2-1
 
 
-    edit_ckpt=$(cat "${ckpt_meta}")
-    rm -f "${ckpt_meta}"
+    # edit_ckpt=$(cat "${ckpt_meta}")
+    # rm -f "${ckpt_meta}"
 
-    echo "[INFO] Running sample.py for instance..."
-    python sample.py \
-        --erase_type "${erase_type}" \
-        --target_concept "${target_concepts}" \
-        --contents "${contents}" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'original, edit' \
-        --num_samples 10 --batch_size 10 \
-        --save_root ${sample_save_root} \
-        --total_timesteps 20 \
-        --sd_ckpt sd2-community/stable-diffusion-2-1 \
+    # echo "[INFO] Running sample.py for instance..."
+    # python sample.py \
+    #     --erase_type "${erase_type}" \
+    #     --target_concept "${target_concepts}" \
+    #     --contents "${contents}" \
+    #     --edit_ckpt "${edit_ckpt}" \
+    #     --mode 'original, edit' \
+    #     --num_samples 10 --batch_size 10 \
+    #     --save_root ${sample_save_root} \
+    #     --total_timesteps 20 \
+    #     --sd_ckpt sd2-community/stable-diffusion-2-1 \
         
 
     # echo "[INFO] Running sample2.py for coco 1k..."
