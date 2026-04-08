@@ -18,7 +18,8 @@ prompts_csv='/path/to/prompts.csv'
 
 ##### instance #####
 # for target_concepts in "Snoopy, Mickey"; do
-for target_concepts in "Van Gogh" "Picasso" "Monet"; do
+# for target_concepts in "Van Gogh" "Picasso" "Monet"; do
+for target_concepts in "Monet"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"

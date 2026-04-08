@@ -60,10 +60,10 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --mapping2context \
         --erasetype "${erase_type}" \
-        --mapMean \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0"
+        # --mapping2context \
+        # --mapMean \
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
