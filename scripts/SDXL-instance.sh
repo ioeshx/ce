@@ -37,7 +37,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         anchor_concepts="art"
         erase_type="style"
         retain_path="data/style.csv"
-        contents="Van Gogh, Picasso, Monet, Paul Gauguin, Caravaggio"
+        contents="Van Gogh, Picasso, Monet"
     fi
     
     echo "=======[${erase_type}]========"
@@ -80,7 +80,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         --total_timesteps 20 \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
         --num_samples 10 \
-        --batch_size 2
+        --batch_size 10
         # --num_samples 1 --batch_size 1 \
 
     python sample-sdxl.py \
@@ -90,10 +90,10 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         --edit_ckpt "${edit_ckpt}" \
         --mode 'original' \
         --save_root ${sample_save_root} \
-        --total_timesteps 50 \
+        --total_timesteps 20 \
         --sd_ckpt "stabilityai/stable-diffusion-xl-base-1.0" \
         --num_samples 10 \
-        --batch_size 2
+        --batch_size 10
 
     # echo "[INFO] Running sample2.py for coco 1k..."
     # python sample2-sdxl.py \
