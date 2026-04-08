@@ -64,10 +64,11 @@ for target_concepts in "CIFAR100"; do
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
+        --sd_ckpt sd2-community/stable-diffusion-2-1 \
         --erasetype "${erase_type}" \
-        --sd_ckpt sd2-community/stable-diffusion-2-1
-        # --mapping2context \
-        # --mapMean \
+        --mapping2context \
+        --mapMean \
+        --mask_topk_count 14
 
 
     edit_ckpt=$(cat "${ckpt_meta}")

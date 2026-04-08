@@ -368,12 +368,12 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
         anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [seq_len, emb_size]
         
         # print tokens
-        anchor_valid_len = int(anchor_inputs.attention_mask[0].sum().item())
-        anchor_ids = anchor_inputs.input_ids[0][:anchor_valid_len].tolist()
-        anchor_tokens = pipeline.tokenizer.convert_ids_to_tokens(anchor_ids)
-        print(f"[Anchor Tokens] concept='{anchor_concepts[i]}', valid_token_len={anchor_valid_len}")
-        for pos, (tok_id, tok_str) in enumerate(zip(anchor_ids, anchor_tokens)):
-            print(f"  pos={pos:02d} id={tok_id:<6} token={tok_str}")
+        # anchor_valid_len = int(anchor_inputs.attention_mask[0].sum().item())
+        # anchor_ids = anchor_inputs.input_ids[0][:anchor_valid_len].tolist()
+        # anchor_tokens = pipeline.tokenizer.convert_ids_to_tokens(anchor_ids)
+        # print(f"[Anchor Tokens] concept='{anchor_concepts[i]}', valid_token_len={anchor_valid_len}")
+        # for pos, (tok_id, tok_str) in enumerate(zip(anchor_ids, anchor_tokens)):
+        #     print(f"  pos={pos:02d} id={tok_id:<6} token={tok_str}")
         
         if target_concepts == ['nudity']:
             target_embs = target_embs[1:, :]  # all tokens
@@ -388,21 +388,6 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
             else:
                 anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1, emb_size]
 
-        # if args.zero_anchor:
-        #     print(f"Enable Anchor-Free Zeroing for concept: {target_concepts[i]}")
-        #     anchor_embs = torch.zeros_like(target_embs)
-        
-        # if args.mapEoT or args.mapLastSubjectToken:
-        #     anchor_prompt = "a photo of {}.".format(anchor_concepts[i])
-        #     anchor_inputs = get_token_id(anchor_prompt, pipeline.tokenizer, return_ids_only=False)
-        #     anchor_embs = pipeline.text_encoder(anchor_inputs.input_ids.to(device)).last_hidden_state[0] # [77, 768]    
-        #     # EoT token
-        #     if args.mapEoT:
-        #         print("Mapping anchor  EoT token representation.")
-        #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
-        #     elif args.mapLastSubjectToken:
-        #         print("Mapping anchor last subject token representation.")
-        #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]
         
         if args.mapping2context:
             print("Mapping to prompt context.")
@@ -417,21 +402,6 @@ def edit_model(args, pipeline, target_concepts, anchor_concepts, retain_texts, b
                 anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]  # last subject token [1, emb_size]
                 anchor_embs_list.append(anchor_embs)
 
-                # if target_concepts == ['nudity']:
-                #     anchor_embs = anchor_embs[1:, :]  # all tokens
-                # if args.target_all_tokens:
-                #     anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True)
-                #     # repeat to match target_embs shape for later calculations
-                #     anchor_embs = anchor_embs.repeat(target_embs.size(0), 1)  
-                # else:
-                #     # average of all subject tokens [1,768]
-                #     # anchor_embs = anchor_embs[0:(anchor_inputs.attention_mask[0].sum().item() - 1), :].mean(dim=0, keepdim=True) 
-                #     if args.anchor_last_subject_token:
-                #         # anchor last subject token
-                #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 2)], :]
-                #     else:
-                #         # anchor using EoT token
-                #         anchor_embs = anchor_embs[[(anchor_inputs.attention_mask[0].sum().item() - 1)], :]
             if args.mapAll:
                 anchor_embs = torch.cat(anchor_embs_list, dim=0)  # average over templates
                 target_embs = target_embs.repeat(len(anchor_embs), 1)  # repeat target_embs to match the number of templates

@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 
 trim_spaces() {
     s="$1"
@@ -64,10 +64,11 @@ for target_concepts in "CIFAR100"; do
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --mapping2context \
+        --sd_ckpt sd2-community/stable-diffusion-2-1 \
         --erasetype "${erase_type}" \
+        --mapping2context \
         --mapMean \
-        --sd_ckpt sd2-community/stable-diffusion-2-1
+        --mask_topk_count 15
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
