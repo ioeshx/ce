@@ -17,7 +17,6 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-# for target_concepts in "Snoopy, Mickey"; do
 for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
@@ -27,7 +26,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         anchor_concepts=""
         erase_type="instance"
         retain_path="data/instance.csv"
-        contents="Hello Kitty, Mickey, Pikachu, Snoopy, Spongebob"
+        contents="Mickey, Snoopy, Spongebob, Pikachu, Hello Kitty"
     elif [ "$target_concepts" = "bed" ] || [ "$target_concepts" = "smartphone" ] || [ "$target_concepts" = "apple" ] || [ "$target_concepts" = "car" ] || [ "$target_concepts" = "book" ]; then
         anchor_concepts=""
         erase_type="object"
@@ -37,7 +36,7 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         anchor_concepts="art"
         erase_type="style"
         retain_path="data/style.csv"
-        contents="Van Gogh, Picasso, Monet, Paul Gauguin, Caravaggio"
+        contents="Van Gogh, Picasso, Monet"
     fi
     
     echo "=======[${erase_type}]========"
@@ -78,21 +77,21 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         --mode 'original, edit' \
         --num_samples 10 --batch_size 10 \
         --save_root ${sample_save_root} \
-        --total_timesteps 50 \
+        --total_timesteps 20 \
         --sd_ckpt sd2-community/stable-diffusion-2-1 \
         
 
-    echo "[INFO] Running sample2.py for coco 1k..."
-    python sample2.py \
-        --target_concept "${target_concepts}" \
-        --contents "coco" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'original, edit' \
-        --batch_size 16 \
-        --save_root ${sample_save_root} \
-        --total_timesteps 50 \
-        --sd_ckpt sd2-community/stable-diffusion-2-1 \
-        # --coco_max_num 100
+    # echo "[INFO] Running sample2.py for coco 1k..."
+    # python sample2.py \
+    #     --target_concept "${target_concepts}" \
+    #     --contents "coco" \
+    #     --edit_ckpt "${edit_ckpt}" \
+    #     --mode 'original, edit' \
+    #     --batch_size 16 \
+    #     --save_root ${sample_save_root} \
+    #     --total_timesteps 20 \
+    #     --sd_ckpt sd2-community/stable-diffusion-2-1 \
+    #     # --coco_max_num 100
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
@@ -167,17 +166,17 @@ for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
         echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
     else
         echo "[INFO] Benchmarking content: ${coco_content}"
-        python "${benchmark_py}" \
-            --metrics lpips aesthetic \
-            --images-root "${image_root}" \
-            --lpips-original "${lpips_original}" \
-            --lpips-edited "${lpips_edited}" \
-            --output-json "${output_json}"
-        python util/clip_score_cal.py \
-            --contents "coco" \
-            --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/" \
-            --version "openai/clip-vit-large-patch14"
+        # python "${benchmark_py}" \
+        #     --metrics lpips aesthetic \
+        #     --images-root "${image_root}" \
+        #     --lpips-original "${lpips_original}" \
+        #     --lpips-edited "${lpips_edited}" \
+        #     --output-json "${output_json}"
+        # python util/clip_score_cal.py \
+        #     --contents "coco" \
+        #     --root_path "${images_root_candidate}/" \
+        #     --pretrained_path "${images_root_candidate}/" \
+        #     --version "openai/clip-vit-large-patch14"
 
     fi
 done

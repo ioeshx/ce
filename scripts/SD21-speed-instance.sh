@@ -3,7 +3,7 @@
 start_seconds=$(date +%s)
 
 export HF_ENDPOINT=https://hf-mirror.com
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 trim_spaces() {
     s="$1"
@@ -17,8 +17,7 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-# for target_concepts in "Snoopy, Mickey"; do
-for target_concepts in "Van Gogh" "Picasso" "Monet"; do
+for target_concepts in "Snoopy, Mickey, Spongebob" "Snoopy, Mickey" "Snoopy"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -27,7 +26,7 @@ for target_concepts in "Van Gogh" "Picasso" "Monet"; do
         anchor_concepts=""
         erase_type="instance"
         retain_path="data/instance.csv"
-        contents="Hello Kitty, Mickey, Pikachu, Snoopy, Spongebob"
+        contents="Mickey, Snoopy, Spongebob, Pikachu, Hello Kitty"
     elif [ "$target_concepts" = "bed" ] || [ "$target_concepts" = "smartphone" ] || [ "$target_concepts" = "apple" ] || [ "$target_concepts" = "car" ] || [ "$target_concepts" = "book" ]; then
         anchor_concepts=""
         erase_type="object"
@@ -37,7 +36,7 @@ for target_concepts in "Van Gogh" "Picasso" "Monet"; do
         anchor_concepts="art"
         erase_type="style"
         retain_path="data/style.csv"
-        contents="Van Gogh, Picasso, Monet, Paul Gauguin, Caravaggio"
+        contents="Van Gogh, Picasso, Monet"
     fi
     
     echo "=======[${erase_type}]========"
@@ -60,10 +59,10 @@ for target_concepts in "Van Gogh" "Picasso" "Monet"; do
         --params V \
         --save_path ${save_path} \
         --ckpt_path_file "${ckpt_meta}" \
-        --mapping2context \
         --erasetype "${erase_type}" \
-        --mapMean \
-        --sd_ckpt "sd-research/stable-diffusion-2-1-base"
+        --sd_ckpt sd2-community/stable-diffusion-2-1 
+        # --mapping2context \
+        # --mapMean \
 
 
     edit_ckpt=$(cat "${ckpt_meta}")
@@ -78,22 +77,21 @@ for target_concepts in "Van Gogh" "Picasso" "Monet"; do
         --mode 'original, edit' \
         --num_samples 10 --batch_size 10 \
         --save_root ${sample_save_root} \
-        --total_timesteps 50 \
-        --sd_ckpt "sd-research/stable-diffusion-2-1-base" \
-        --disable_fixed_seed
+        --total_timesteps 20 \
+        --sd_ckpt sd2-community/stable-diffusion-2-1 \
+        
 
-    echo "[INFO] Running sample2.py for coco 1k..."
-    python sample2.py \
-        --target_concept "${target_concepts}" \
-        --contents "coco" \
-        --edit_ckpt "${edit_ckpt}" \
-        --mode 'original, edit' \
-        --batch_size 16 \
-        --save_root ${sample_save_root} \
-        --total_timesteps 50 \
-        --sd_ckpt "sd-research/stable-diffusion-2-1-base" \
-        --disable_fixed_seed
-        # --coco_max_num 100
+    # echo "[INFO] Running sample2.py for coco 1k..."
+    # python sample2.py \
+    #     --target_concept "${target_concepts}" \
+    #     --contents "coco" \
+    #     --edit_ckpt "${edit_ckpt}" \
+    #     --mode 'original, edit' \
+    #     --batch_size 16 \
+    #     --save_root ${sample_save_root} \
+    #     --total_timesteps 20 \
+    #     --sd_ckpt sd2-community/stable-diffusion-2-1 \
+    #     # --coco_max_num 100
 
     # Expected structure:
     #   ${sample_save_root}/${target_group}/${content}/{original,edit}
@@ -168,17 +166,17 @@ for target_concepts in "Van Gogh" "Picasso" "Monet"; do
         echo "[WARN] Skip ${coco_content}: missing ${lpips_original} or ${lpips_edited}"
     else
         echo "[INFO] Benchmarking content: ${coco_content}"
-        python "${benchmark_py}" \
-            --metrics lpips aesthetic \
-            --images-root "${image_root}" \
-            --lpips-original "${lpips_original}" \
-            --lpips-edited "${lpips_edited}" \
-            --output-json "${output_json}"
-        python util/clip_score_cal.py \
-            --contents "coco" \
-            --root_path "${images_root_candidate}/" \
-            --pretrained_path "${images_root_candidate}/" \
-            --version "openai/clip-vit-large-patch14"
+        # python "${benchmark_py}" \
+        #     --metrics lpips aesthetic \
+        #     --images-root "${image_root}" \
+        #     --lpips-original "${lpips_original}" \
+        #     --lpips-edited "${lpips_edited}" \
+        #     --output-json "${output_json}"
+        # python util/clip_score_cal.py \
+        #     --contents "coco" \
+        #     --root_path "${images_root_candidate}/" \
+        #     --pretrained_path "${images_root_candidate}/" \
+        #     --version "openai/clip-vit-large-patch14"
 
     fi
 done
