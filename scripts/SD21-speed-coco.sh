@@ -17,7 +17,7 @@ prompts_csv='/path/to/prompts.csv'
 
 
 ##### instance #####
-for target_concepts in "CIFAR100"; do
+for target_concepts in "CIFAR75" "CIFAR50"; do
     # target_concepts="Snoopy, Mickey, Spongebob"
     # anchor_concepts=""
     # retain_path="data/instance.csv"
@@ -32,7 +32,7 @@ for target_concepts in "CIFAR100"; do
         erase_type="object"
         retain_path="data/object.csv"
         contents="bed, smartphone, apple, car, book"
-    elif [ "$target_concepts" = "CIFAR100" ]; then
+    elif [ "$target_concepts" = "CIFAR100" ] || [ "$target_concepts" = "CIFAR75" ] || [ "$target_concepts" = "CIFAR50" ]; then
         anchor_concepts=""
         erase_type="instance"
         retain_path="data/instance.csv"
